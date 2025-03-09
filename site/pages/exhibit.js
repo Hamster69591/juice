@@ -132,10 +132,34 @@ const TopBar = ({ exhibitStage, handleNavClick, toggleLanguage, t }) => {
   );
 };
 
+//Generation ticket function (RSVP)
+const generateTicket = async (name, phone, eventDate, timeBlock) => {
+  const data = JSON.stringify({ name, phone, eventDate, timeBlock });
+
+  const key = await crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: new Uint8Array(12) },
+    key,
+    new TextEncoder().encode(data)
+  );
+
+  const exportedKey = await crypto.subtle.exportKey("raw", key);
+
+  window.location.href = `/ticket?data=${encodeURIComponent(
+    btoa(String.fromCharCode(...new Uint8Array(encryptedData)))
+  )}&key=${encodeURIComponent(btoa(String.fromCharCode(...new Uint8Array(exportedKey))))}`;
+};
+
 export default function Exhibit() {
   const [exhibitStage, setExhibitStage] = useState(0); // 0 = explore, 1 = rsvp, 2 = ticket, 3 = friends
   const [hasRSVPed, setHasRSVPed] = useState(false); // Track if user has RSVPed
   const [language, setLanguage] = useState('en'); // 'en' for English, 'zh' for Mandarin
+  const [selectedDate, setSelectedDate] = useState('');
   
   // Translations
   const translations = {
@@ -242,20 +266,25 @@ export default function Exhibit() {
             {exhibitStage === 1 && (
               <div style={{padding: 8}}>
                 <h1>{t.rsvpTitle}</h1>
-                {/* RSVP form would go here */}
-                <button 
-                  onClick={completeRSVP}
-                  style={{
-                    marginTop: 20,
-                    padding: "10px 20px",
-                    backgroundColor: "#000",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer"
-                  }}
-                >
-                  {t.rsvpButton}
-                </button>
+                <form onSubmit={handleSubmit}>
+                  <input type="text" name="name" placeholder="Enter your name" required />
+                  <input type="tel" name="phone" placeholder="Enter your phone number" required />
+                  <input
+                    type="date"
+                    name="eventDate"
+                    min="2024-04-05"
+                    max="2024-04-11"
+                    required
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                  />
+                  <select name="timeBlock" required>
+                    <option value="" disabled selected>Select time block</option>
+                    <option value="Morning (9 AM - 12 PM)">Morning (9 AM - 12 PM)</option>
+                    <option value="Afternoon (1 PM - 5 PM)">Afternoon (1 PM - 5 PM)</option>
+                    <option value="Evening (6 PM - 9 PM)">Evening (6 PM - 9 PM)</option>
+                  </select>
+                  <button type="submit">Generate Ticket</button>
+                </form>
                 {hasRSVPed && (
                   <p style={{color: "green", marginTop: 10}}>{t.rsvpSuccess}</p>
                 )}
