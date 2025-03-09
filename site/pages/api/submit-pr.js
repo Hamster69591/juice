@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     }
 
     // Find user by token
-    const records = await base(process.env.AIRTABLE_TABLE_NAME).select({
+    const records = await base("Signups").select({
       filterByFormula: `{token} = '${token}'`,
       maxRecords: 1
     }).firstPage();
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const record = records[0];
     
     // Update the user record with PR link and achievement
-    const updatedRecord = await base(process.env.AIRTABLE_TABLE_NAME).update([
+    const updatedRecord = await base("Signups").update([
       {
         id: record.id,
         fields: {

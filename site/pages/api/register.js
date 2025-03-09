@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const normalizedEmail = email.toLowerCase();
 
     // Check if email exists in Signups table
-    const existingRecords = await base(process.env.AIRTABLE_TABLE_NAME).select({
+    const existingRecords = await base("Signups").select({
       filterByFormula: `LOWER({email}) = '${normalizedEmail}'`,
       maxRecords: 1
     }).firstPage();
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     }
 
     // Create new signup record if email doesn't exist
-    const record = await base(process.env.AIRTABLE_TABLE_NAME).create([
+    const record = await base("Signups").create([
       {
         fields: {
           email: normalizedEmail

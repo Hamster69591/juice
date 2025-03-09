@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         const token = authHeader.split(' ')[1];
         
         // Get user record
-        const userRecords = await base(process.env.AIRTABLE_TABLE_NAME).select({
+        const userRecords = await base("Signups").select({
             filterByFormula: `{token} = '${token}'`,
             maxRecords: 1
         }).firstPage();

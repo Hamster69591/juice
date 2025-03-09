@@ -29,6 +29,9 @@ import VillagerPokemonCard from '../VillagerPokemonCard';
 import BrucePokemonCard from '../BrucePokemonCard';
 import Win7PokemonCard from '../Win7PokemonCard';
 import CardCreatorWindow from './CardCreatorWindow';
+import RabbitMessage from '../RabbitMessage';
+import V1Challenge from './V1Challenge';
+import WutIsBubbleathonWindow from './WutIsBubbleathonWindow';
 
 export default function MainView({
   isLoggedIn,
@@ -37,6 +40,9 @@ export default function MainView({
   setUserData,
   isJungle,
 }) {
+
+
+
   const [time, setTime] = React.useState(new Date());
   const [timeRemaining, setTimeRemaining] = React.useState('');
   const [selectedFile, setSelectedFile] = React.useState(null);
@@ -98,6 +104,12 @@ export default function MainView({
     y: 0,
   });
   const [wutIsPenguathonWindowPosition, setWutIsPenguathonWindowPosition] =
+    React.useState({
+      x: 400,
+      y: 150,
+    });
+
+  const [wutIsBubbleathonWindowPosition, setWutIsBubbleathonWindowPosition] =
     React.useState({
       x: 400,
       y: 150,
@@ -179,6 +191,7 @@ export default function MainView({
     zero: 300,
     wutIsPenguathon: 300,
     cardCreator: 470,
+    wutIsBubbleathon: 300,
   };
   const BASE_Z_INDEX = 1;
 
@@ -618,6 +631,9 @@ export default function MainView({
       case 'cardCreator':
         position = cardCreatorPosition;
         break;
+      case 'wutIsBubbleathon':
+        position = wutIsBubbleathonWindowPosition;
+        break
       default:
         console.log('Unknown window name:', windowName);
         position = { x: 0, y: 0 };
@@ -698,6 +714,8 @@ export default function MainView({
         setWutIsPenguathonWindowPosition(newPosition);
       } else if (activeWindow === 'cardCreator') {
         setCardCreatorPosition(newPosition);
+      } else if (activeWindow === 'wutIsBubbleathon') {
+        setWutIsBubbleathonWindowPosition(newPosition);
       }
     }
   }; // Add closing brace here
@@ -822,12 +840,12 @@ export default function MainView({
     }
   };
 
-  const handlePenguathonClick = () => {
-    if (!openWindows.includes('wutIsPenguathon')) {
-      setOpenWindows([...openWindows, 'wutIsPenguathon']);
-      setWindowOrder([...windowOrder, 'wutIsPenguathon']);
+  const handleBubbleathonClick = () => {
+    if (!openWindows.includes('wutIsBubbleathon')) {
+      setOpenWindows([...openWindows, 'wutIsBubbleathon']);
+      setWindowOrder([...windowOrder, 'wutIsBubbleathon']);
     } else {
-      handleWindowClick('wutIsPenguathon')();
+      handleWindowClick('wutIsBubbleathon')();
     }
   };
 
@@ -950,28 +968,37 @@ export default function MainView({
     }
   };
 
-  const isBeforePenguathonTime = () => {
-    return Date.now() < 1740236400000;
+  const isBeforeBubbleathonTime = () => {
+    return Date.now() < 1741447800000;
   };
 
-  const isPenguathonTime = () => {
-    return Date.now() > 1740236400000 && Date.now() < 1740294000000;
+  const isBubbleathonTime = () => {
+    return Date.now() > 1741447800000 && Date.now() < 1741465800000;
   };
 
-  const getPenguathonState = () => {
-    const penguathonStart = 1740236400000;
-    const penguathonEnd = 1740294000000;
+  const getBubbleathonState = () => {
+    const bubbleathonStart = 1741447800000;
+    const bubbleathonEnd = 1741465800000;
 
-    if (Date.now() > penguathonEnd) {
+    if (Date.now() > bubbleathonEnd) {
       return null;
     }
 
-    if (Date.now() < penguathonStart) {
+    if (Date.now() < bubbleathonStart) {
       return 'upcoming';
     }
 
     return 'happening now!';
   };
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 20000); // Update every second
+
+    return () => clearInterval(timer);
+  }, []);
+
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -1113,9 +1140,9 @@ export default function MainView({
     if (storedCurrentDay) {
       return parseInt(storedCurrentDay, 10);
     }
-    
+
     if (!startDate) return 1;
-    
+
     // Fallback to calculation
     const start = new Date(startDate);
     const now = new Date();
@@ -1170,23 +1197,23 @@ export default function MainView({
   // Update isTamagotchiDead to use the same window logic
   const isTamagotchiDead = (userData) => {
     if (!userData?.Tamagotchi?.[0]) return false;
-    
+
     const tamagotchi = userData.Tamagotchi[0];
     if (!tamagotchi.isAlive) return true;
 
     const startDate = new Date(tamagotchi.startDate);
     const now = new Date();
-    
+
     // Don't check for death in the first 24 hours
     const timeSinceStart = Math.abs(now - startDate);
     const hoursSinceStart = timeSinceStart / (1000 * 60 * 60);
     if (hoursSinceStart < 24) return false;
 
     // Only check for death if more than 24 hours have passed since the last juicing
-    const lastJuiceTime = userData?.Loops?.['juiceLastOmgMomentAt'] 
+    const lastJuiceTime = userData?.Loops?.['juiceLastOmgMomentAt']
       ? new Date(userData.Loops['juiceLastOmgMomentAt'])
       : now;
-    
+
     const timeSinceLastJuice = Math.abs(now - lastJuiceTime);
     const hoursSinceLastJuice = timeSinceLastJuice / (1000 * 60 * 60);
 
@@ -1197,19 +1224,19 @@ export default function MainView({
   const getRemainingHours = (userData) => {
     const startDate = userData?.Tamagotchi?.[0]?.startDate;
     if (!startDate) return { hoursNeeded: '0.0', hoursLeft: '0.0' };
-    
+
     const start = new Date(startDate);
     const now = new Date();
     const hoursSinceStart = (now - start) / (1000 * 60 * 60);
     const currentPeriodEnd = new Date(start.getTime() + (Math.floor(hoursSinceStart / 24) + 1) * 24 * 60 * 60 * 1000);
     const hoursUntilNextPeriod = (currentPeriodEnd - now) / (1000 * 60 * 60);
-    
+
     // Calculate hours worked in current period
     const periodStart = new Date(currentPeriodEnd.getTime() - 24 * 60 * 60 * 1000);
     const todaysJuiceHours = getTodaysHours(userData?.juiceStretches, periodStart);
     const todaysJungleHours = getTodaysHours(userData?.jungleStretches, periodStart);
     const totalHours = todaysJuiceHours + todaysJungleHours;
-    
+
     return {
       hoursNeeded: Math.max(0, 2 - totalHours).toFixed(1),
       hoursLeft: hoursUntilNextPeriod.toFixed(1)
@@ -1222,12 +1249,12 @@ export default function MainView({
 
     const startDate = userData.Tamagotchi[0].startDate;
     if (!startDate) return 0;
-    
+
     const start = new Date(startDate);
     const now = new Date();
     const hoursSinceStart = (now - start) / (1000 * 60 * 60);
     const currentPeriodEnd = new Date(start.getTime() + (Math.floor(hoursSinceStart / 24) + 1) * 24 * 60 * 60 * 1000);
-    
+
     // Calculate hours worked in current period
     const periodStart = new Date(currentPeriodEnd.getTime() - 24 * 60 * 60 * 1000);
     const todaysJuiceHours = getTodaysHours(userData?.juiceStretches, periodStart);
@@ -1374,12 +1401,12 @@ export default function MainView({
     if (!userData?.Tamagotchi?.length) {
       return 'Click to hatch a Tamagotchi!';
     }
-    
+
     const tamagotchi = userData.Tamagotchi[0];
     if (!tamagotchi.isAlive) {
       return 'Your Tamagotchi died! Click to try again.';
     }
-    
+
     return 'Keep me alive by giving me more juice & jungle fruits yum yum yum';
   };
 
@@ -1392,7 +1419,7 @@ export default function MainView({
   // Add these new handler functions before the return statement
   const handleTamagotchiMouseDown = () => {
     if (!userData?.Tamagotchi?.length) return; // Only work if there's a Tamagotchi
-    
+
     setPressStartTime(Date.now());
     const timer = setTimeout(async () => {
       const shouldDelete = window.confirm("Are you sure you want to kill the Tamagotchi and start fresh?");
@@ -1492,7 +1519,7 @@ export default function MainView({
   // Update the syncTamagotchiDays function to track last sync time
   const syncTamagotchiDays = async () => {
     if (!isLoggedIn || !userData?.Tamagotchi?.length) return;
-    
+
     const now = Date.now();
     // Only sync if it's been more than 10 minutes since last sync
     if (now - lastSyncTime < 600000) { // 600000ms = 10 minutes
@@ -1514,7 +1541,7 @@ export default function MainView({
       }
 
       const data = await response.json();
-      
+
       // Update userData with the streak days
       setUserData(prevData => ({
         ...prevData,
@@ -1525,16 +1552,16 @@ export default function MainView({
           }
         ]
       }));
-      
+
       // Store today's hours and OMG moments in localStorage
       localStorage.setItem('tamagotchiTodayHours', JSON.stringify(data.todayHours));
       localStorage.setItem('tamagotchiDayOmgMoments', JSON.stringify(data.dayOmgMoments));
       localStorage.setItem('tamagotchiDaysWithOmgMoments', JSON.stringify(data.daysWithOmgMoments));
       localStorage.setItem('tamagotchiCurrentDay', data.currentDay.toString());
-      
+
       // Update last sync time
       setLastSyncTime(now);
-      
+
       console.log('Tamagotchi days synced:', data);
     } catch (error) {
       console.error('Error syncing Tamagotchi days:', error);
@@ -1544,19 +1571,19 @@ export default function MainView({
   // Update the useEffect that handles syncing
   React.useEffect(() => {
     // ... existing code ...
-    
+
     // Sync Tamagotchi days when component mounts and user is logged in
     if (isLoggedIn && userData?.Tamagotchi?.length) {
       syncTamagotchiDays();
     }
-    
+
     // Set up a timer to sync Tamagotchi days every 10 minutes
     const syncInterval = setInterval(() => {
       if (isLoggedIn && userData?.Tamagotchi?.length) {
         syncTamagotchiDays();
       }
     }, 600000); // 600000ms = 10 minutes
-    
+
     return () => clearInterval(syncInterval);
   }, [isLoggedIn, userData?.Tamagotchi]);
 
@@ -1592,19 +1619,19 @@ export default function MainView({
   // Add this to the useEffect that loads user data
   React.useEffect(() => {
     // ... existing code ...
-    
+
     // Sync Tamagotchi days when component mounts and user is logged in
     if (isLoggedIn && userData?.Tamagotchi?.length) {
       syncTamagotchiDays();
     }
-    
+
     // Set up a timer to sync Tamagotchi days periodically (every 10 minutes)
     const syncInterval = setInterval(() => {
       if (isLoggedIn && userData?.Tamagotchi?.length) {
         syncTamagotchiDays();
       }
     }, 10 * 60 * 1000); // Every 10 minutes
-    
+
     return () => clearInterval(syncInterval);
   }, [isLoggedIn, userData?.Tamagotchi]);
 
@@ -1620,7 +1647,7 @@ export default function MainView({
     } catch (e) {
       console.error('Error parsing today hours:', e);
     }
-    
+
     return "0.0 / 2.0 hours";
   };
 
@@ -1642,24 +1669,24 @@ export default function MainView({
   // Add a function to get moments for a specific day
   const getDayMoments = (dayNumber) => {
     if (!userData?.juiceStretches && !userData?.jungleStretches) return [];
-    
+
     const tamagotchiStartDate = userData?.Tamagotchi?.[0]?.startDate;
     if (!tamagotchiStartDate) return [];
-    
+
     const dayStart = new Date(tamagotchiStartDate);
     dayStart.setDate(dayStart.getDate() + (dayNumber - 1));
     dayStart.setHours(0, 0, 0, 0);
-    
+
     const dayEnd = new Date(tamagotchiStartDate);
     dayEnd.setDate(dayEnd.getDate() + dayNumber);
     dayEnd.setHours(0, 0, 0, 0);
-    
+
     // Helper function to process stretches
     const processStretches = (stretches, type) => {
       if (!stretches) return [];
       return stretches.reduce((acc, stretch) => {
         if (!stretch.endTime) return acc;
-        
+
         const stretchEnd = new Date(stretch.endTime);
         if (stretchEnd >= dayStart && stretchEnd < dayEnd && stretch.omgMoments && stretch.omgMoments.length > 0) {
           // Create a moment object for each omgMoment in the stretch
@@ -1677,13 +1704,13 @@ export default function MainView({
         return acc;
       }, []);
     };
-    
+
     // Get moments from both juice and jungle stretches
     const juiceMoments = processStretches(userData?.juiceStretches, 'juice');
     const jungleMoments = processStretches(userData?.jungleStretches, 'jungle');
-    
+
     // Combine and sort all moments by creation time
-    return [...juiceMoments, ...jungleMoments].sort((a, b) => 
+    return [...juiceMoments, ...jungleMoments].sort((a, b) =>
       new Date(a.created_at) - new Date(b.created_at)
     );
   };
@@ -1707,7 +1734,7 @@ export default function MainView({
 
   const navigateMoments = (direction) => {
     const newIndex = currentMomentIndex + direction;
-    
+
     // Check bounds
     if (newIndex >= 0 && newIndex < dayMoments.length) {
       setCurrentMomentIndex(newIndex);
@@ -1756,14 +1783,14 @@ export default function MainView({
             <span>{new Date(selectedMoment.created_at).toLocaleString()}</span>
             <span>Duration: {selectedMoment.hours} hours</span>
           </div>
-          <div style={{ 
+          <div style={{
             marginTop: 10,
             display: 'flex',
             gap: 8,
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <button 
+            <button
               onClick={() => navigateMoments(-1)}
               disabled={currentMomentIndex === 0}
               style={{ opacity: currentMomentIndex === 0 ? 0.5 : 1 }}
@@ -1773,7 +1800,7 @@ export default function MainView({
             <button onClick={closePopup}>
               Close
             </button>
-            <button 
+            <button
               onClick={() => navigateMoments(1)}
               disabled={currentMomentIndex === dayMoments.length - 1}
               style={{ opacity: currentMomentIndex === dayMoments.length - 1 ? 0.5 : 1 }}
@@ -1812,7 +1839,7 @@ export default function MainView({
           <h3 style={{ margin: 0 }}>Day {dayNumber} OMG Moments</h3>
           <button onClick={onClose}>×</button>
         </div>
-        
+
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -1822,7 +1849,7 @@ export default function MainView({
           {moments.map((moment) => {
             let backgroundColor;
             let strokeColor;
-            
+
             // First determine review status colors
             if (moment.stretchReview === "Accepted") {
               backgroundColor = moment.type === 'jungle' ? "#4CAF50" : "#2196F3"; // Green for jungle, Blue for juice
@@ -1908,8 +1935,55 @@ export default function MainView({
     />
   )}
 
+  // Add this state near the other state declarations
+  const [isRabbitMessageVisible, setIsRabbitMessageVisible] = useState(false);
+
+  // Add this state near other state declarations
+  const [isRabbitShaking, setIsRabbitShaking] = useState(false);
+
+  // Add this state near other state declarations
+  const [isZoomedToRabbit, setIsZoomedToRabbit] = useState(false);
+
+  // Update the handleRabbitClick function
+  const handleRabbitClick = (e) => {
+    e.stopPropagation();
+    setIsRabbitMessageVisible(true);
+    setIsRabbitShaking(true);
+    setIsZoomedToRabbit(true);
+
+    // Stop shaking after 6 seconds
+    setTimeout(() => {
+      setIsRabbitShaking(false);
+    }, 6000);
+  };
+
+  // Add this handler function to hide the message when clicking outside
+  const handleBackgroundClick = () => {
+    setIsRabbitMessageVisible(false);
+    setSelectedFile(null); // Keep existing functionality
+  };
+
+  // Update the handleGlobalClick function
+  const handleGlobalClick = (e) => {
+    const isRabbitClick = e.target.closest('[data-rabbit-component="true"]');
+
+    if (!isRabbitClick) {
+      setIsRabbitMessageVisible(false);
+      setIsZoomedToRabbit(false);
+    }
+  };
+
+  // Function to handle zooming out when user claims their fortune
+  const handleClaimLuck = () => {
+    // Hide the rabbit message
+    setIsRabbitMessageVisible(false);
+    // Reset the zoom state
+    setIsZoomedToRabbit(false);
+  };
+
   return (
     <div
+      onClick={handleGlobalClick}
       data-shake-container="true"
       style={{
         animation: isJuicing ? 'juicerShake 1s ease-in-out infinite' : 'none',
@@ -1921,1539 +1995,1839 @@ export default function MainView({
         position: 'relative',
       }}
     >
-      <style jsx global>{`
-        @keyframes shake {
-          10%,
-          90% {
-            transform: translate3d(-1px, 0, 0) scale(1.01);
+      {/* Add a new wrapper div for the zoom effect */}
+      <div style={{
+        transform: isZoomedToRabbit ? 'scale(5.0) translateY(-6px)' : 'scale(1) translateY(0)',
+        transition: isZoomedToRabbit
+          ? 'all 8.9s cubic-bezier(0.34, 1.56, 0.64, 1)' // Bouncy transition when zooming in
+          : 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)', // Smooth transition when zooming out
+        transformOrigin: 'top center',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden' // Add this to prevent content from showing outside bounds
+      }}>
+        <style jsx global>{`
+          @keyframes shake {
+            10%,
+            90% {
+              transform: translate3d(-1px, 0, 0) scale(1.01);
+            }
+            20%,
+            80% {
+              transform: translate3d(2px, 0, 0) scale(1.01);
+            }
+            30%,
+            50%,
+            70% {
+              transform: translate3d(-4px, 0, 0) scale(1.01);
+            }
+            40%,
+            60% {
+              transform: translate3d(4px, 0, 0) scale(1.01);
+            }
           }
-          20%,
-          80% {
-            transform: translate3d(2px, 0, 0) scale(1.01);
+          @keyframes saturate {
+            0% {
+              backdrop-filter: saturate(100%);
+            }
+            50% {
+              backdrop-filter: saturate(300%);
+            }
+            100% {
+              backdrop-filter: saturate(100%);
+            }
           }
-          30%,
-          50%,
-          70% {
-            transform: translate3d(-4px, 0, 0) scale(1.01);
+          @keyframes popIn {
+            0% {
+              transform: scale(0.4);
+              opacity: 0;
+            }
+            60% {
+              transform: scale(1.1);
+            }
+            80% {
+              transform: scale(0.95);
+            }
+            100% {
+              transform: scale(1);
+              opacity: 1;
+            }
           }
-          40%,
-          60% {
-            transform: translate3d(4px, 0, 0) scale(1.01);
+          @keyframes popOut {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            100% {
+              transform: scale(0.4);
+              opacity: 0;
+            }
           }
-        }
-        @keyframes saturate {
-          0% {
-            backdrop-filter: saturate(100%);
+          .panel-pop {
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           }
-          50% {
-            backdrop-filter: saturate(300%);
+          .panel-pop-out {
+            animation: popOut 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           }
-          100% {
-            backdrop-filter: saturate(100%);
+          @keyframes fortuneCookiePop {
+            0% {
+              transform: scale(0.5) rotate(0deg);
+              opacity: 0;
+            }
+            60% {
+              transform: scale(1.1) rotate(10deg);
+            }
+            80% {
+              transform: scale(0.95) rotate(-5deg);
+            }
+            100% {
+              transform: scale(1) rotate(0deg);
+              opacity: 1;
+            }
           }
-        }
-        @keyframes popIn {
-          0% {
-            transform: scale(0.4);
-            opacity: 0;
+          @keyframes juicerShake {
+            0% {
+              transform: translate3d(0, 0, 0) scale(1.1);
+            }
+            25% {
+              transform: translate3d(2px, 2px, 0) scale(1.1);
+            }
+            50% {
+              transform: translate3d(-2px, -2px, 0) scale(1.1);
+            }
+            75% {
+              transform: translate3d(-2px, 2px, 0) scale(1.1);
+            }
+            100% {
+              transform: translate3d(0, 0, 0) scale(1.1);
+            }
           }
-          60% {
-            transform: scale(1.1);
-          }
-          80% {
-            transform: scale(0.95);
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-        @keyframes popOut {
-          0% {
-            transform: scale(1);
-            opacity: 1;
-          }
-          100% {
-            transform: scale(0.4);
-            opacity: 0;
-          }
-        }
-        .panel-pop {
-          animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        .panel-pop-out {
-          animation: popOut 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        @keyframes fortuneCookiePop {
-          0% {
-            transform: scale(0.5) rotate(0deg);
-            opacity: 0;
-          }
-          60% {
-            transform: scale(1.1) rotate(10deg);
-          }
-          80% {
-            transform: scale(0.95) rotate(-5deg);
-          }
-          100% {
-            transform: scale(1) rotate(0deg);
-            opacity: 1;
-          }
-        }
-        @keyframes juicerShake {
-          0% {
-            transform: translate3d(0, 0, 0) scale(1.1);
-          }
-          25% {
-            transform: translate3d(2px, 2px, 0) scale(1.1);
-          }
-          50% {
-            transform: translate3d(-2px, -2px, 0) scale(1.1);
-          }
-          75% {
-            transform: translate3d(-2px, 2px, 0) scale(1.1);
-          }
-          100% {
-            transform: translate3d(0, 0, 0) scale(1.1);
-          }
-        }
 
-        .juicing-enter {
-          animation: juicingEnter 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
+          .juicing-enter {
+            animation: juicingEnter 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
 
-        @keyframes juicingEnter {
-          0% {
-            transform: scale(1);
+          @keyframes juicingEnter {
+            0% {
+              transform: scale(1);
+            }
+            100% {
+              transform: scale(1.1);
+            }
           }
-          100% {
-            transform: scale(1.1);
+          @keyframes windowShakeAndScale {
+            0% {
+              transform: rotateZ(0deg) scale(0.5);
+            }
+            33% {
+              transform: rotateZ(20deg) scale(1.2);
+            }
+            66% {
+              transform: rotateZ(-20deg) scale(0.8);
+            }
+            100% {
+              transform: rotateZ(0deg) scale(1);
+            }
           }
-        }
-        @keyframes windowShakeAndScale {
-          0% {
-            transform: rotateZ(0deg) scale(0.5);
+          @keyframes rainbow {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
           }
-          33% {
-            transform: rotateZ(20deg) scale(1.2);
+          @keyframes rainbowGlass {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
           }
-          66% {
-            transform: rotateZ(-20deg) scale(0.8);
+          .rainbow-glass-panel {
+            background: linear-gradient(
+              90deg,
+              rgba(255, 220, 180, 0.4),
+              rgba(255, 180, 220, 0.4),
+              rgba(180, 220, 255, 0.4),
+              rgba(180, 255, 220, 0.4)
+            );
+            background-size: 300% 100%;
+            animation: rainbowGlass 3s linear infinite;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 30px rgba(255, 255, 255, 0.2);
           }
-          100% {
-            transform: rotateZ(0deg) scale(1);
+          @keyframes buttonBounce {
+            0%,
+            100% {
+              transform: scale(1);
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            50% {
+              transform: scale(1.05);
+              box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            }
           }
-        }
-        @keyframes rainbow {
-          0% {
-            background-position: 0% 50%;
+          .bounce-button {
+            animation: buttonBounce 2s ease-in-out infinite;
+            transform-origin: center;
           }
-          50% {
-            background-position: 100% 50%;
+          @keyframes floatBoat1 {
+            0% {
+              transform: translate(-50%, 100%);
+            }
+            100% {
+              transform: translate(150%, -100%) rotate(45deg);
+            }
           }
-          100% {
-            background-position: 0% 50%;
+          @keyframes floatBoat2 {
+            0% {
+              transform: translate(150%, 100%) rotate(-45deg);
+            }
+            100% {
+              transform: translate(-50%, -100%) rotate(45deg);
+            }
           }
-        }
-        @keyframes rainbowGlass {
-          0% {
-            background-position: 0% 50%;
+          .floating-boat {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
           }
-          50% {
-            background-position: 100% 50%;
+          .boat1 {
+            animation: floatBoat1 8s linear infinite;
           }
-          100% {
-            background-position: 0% 50%;
+          .boat2 {
+            animation: floatBoat2 10s linear infinite;
           }
-        }
-        .rainbow-glass-panel {
-          background: linear-gradient(
-            90deg,
-            rgba(255, 220, 180, 0.4),
-            rgba(255, 180, 220, 0.4),
-            rgba(180, 220, 255, 0.4),
-            rgba(180, 255, 220, 0.4)
-          );
-          background-size: 300% 100%;
-          animation: rainbowGlass 3s linear infinite;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          box-shadow: 0 2px 30px rgba(255, 255, 255, 0.2);
-        }
-        @keyframes buttonBounce {
-          0%,
-          100% {
-            transform: scale(1);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          @keyframes jiggleEnvelope {
+            0% {
+              transform: rotate(0deg) scale(1);
+            }
+            15% {
+              transform: rotate(-0.5deg) scale(0.998);
+            }
+            30% {
+              transform: rotate(0.8deg) scale(1.001);
+            }
+            45% {
+              transform: rotate(-0.7deg) scale(0.999);
+            }
+            60% {
+              transform: rotate(0.3deg) scale(1.002);
+            }
+            75% {
+              transform: rotate(-0.5deg) scale(0.998);
+            }
+            85% {
+              transform: rotate(0.4deg) scale(1.001);
+            }
+            100% {
+              transform: rotate(0deg) scale(1);
+            }
           }
-          50% {
-            transform: scale(1.05);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+          @keyframes jiggleEnvelopeIntense {
+            0% {
+              transform: rotate(0deg) scale(1);
+            }
+            15% {
+              transform: rotate(-2deg) scale(0.99);
+            }
+            30% {
+              transform: rotate(3deg) scale(1.02);
+            }
+            45% {
+              transform: rotate(-2.5deg) scale(0.98);
+            }
+            60% {
+              transform: rotate(2deg) scale(1.03);
+            }
+            75% {
+              transform: rotate(-3deg) scale(0.99);
+            }
+            85% {
+              transform: rotate(2.5deg) scale(1.02);
+            }
+            100% {
+              transform: rotate(0deg) scale(1);
+            }
           }
-        }
-        .bounce-button {
-          animation: buttonBounce 2s ease-in-out infinite;
-          transform-origin: center;
-        }
-        @keyframes floatBoat1 {
-          0% {
-            transform: translate(-50%, 100%);
+          @keyframes rainbowOverlay {
+            0% {
+              transform: translateX(-100%);
+            }
+            100% {
+              transform: translateX(100%);
+            }
           }
-          100% {
-            transform: translate(150%, -100%) rotate(45deg);
+          @keyframes rainbowShadow {
+            0% {
+              filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.1))
+                drop-shadow(0 0 12px rgba(255, 0, 255, 0.1));
+            }
+            33% {
+              filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.1))
+                drop-shadow(0 0 12px rgba(255, 255, 0, 0.1));
+            }
+            66% {
+              filter: drop-shadow(0 0 8px rgba(0, 0, 255, 0.1))
+                drop-shadow(0 0 12px rgba(0, 255, 255, 0.1));
+            }
+            100% {
+              filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.1))
+                drop-shadow(0 0 12px rgba(255, 0, 255, 0.1));
+            }
           }
-        }
-        @keyframes floatBoat2 {
-          0% {
-            transform: translate(150%, 100%) rotate(-45deg);
+          @keyframes eggShake {
+            0% {
+              transform: rotate(0deg) scale(1.2);
+            }
+            2% {
+              transform: rotate(-2deg) scale(1.35);
+            }
+            4% {
+              transform: rotate(2deg) scale(1.3);
+            }
+            6% {
+              transform: rotate(-2.5deg) scale(1.35);
+            }
+            8% {
+              transform: rotate(2.5deg) scale(1.3);
+            }
+            10% {
+              transform: rotate(-2deg) scale(1.35);
+            }
+            12% {
+              transform: rotate(2deg) scale(1.3);
+            }
+            14% {
+              transform: rotate(-2.5deg) scale(1.35);
+            }
+            16% {
+              transform: rotate(2.5deg) scale(1.3);
+            }
+            18% {
+              transform: rotate(-2deg) scale(1.35);
+            }
+            20% {
+              transform: rotate(0deg) scale(1.3);
+            }
+            90% {
+              transform: rotate(0deg) scale(1.3);
+            }
+            100% {
+              transform: rotate(0deg) scale(1);
+            }
           }
-          100% {
-            transform: translate(-50%, -100%) rotate(45deg);
+          @keyframes shimmer {
+            0% {
+              background-position: 200% center;
+            }
+            100% {
+              background-position: -200% center;
+            }
           }
-        }
-        .floating-boat {
-          position: absolute;
-          font-size: 24px;
-          opacity: 0.3;
-          pointer-events: none;
-          z-index: 0;
-        }
-        .boat1 {
-          animation: floatBoat1 8s linear infinite;
-        }
-        .boat2 {
-          animation: floatBoat2 10s linear infinite;
-        }
-        @keyframes jiggleEnvelope {
-          0% {
-            transform: rotate(0deg) scale(1);
+          @keyframes pressProgress {
+            0% {
+              transform: scaleX(0);
+            }
+            100% {
+              transform: scaleX(1);
+            }
           }
-          15% {
-            transform: rotate(-0.5deg) scale(0.998);
-          }
-          30% {
-            transform: rotate(0.8deg) scale(1.001);
-          }
-          45% {
-            transform: rotate(-0.7deg) scale(0.999);
-          }
-          60% {
-            transform: rotate(0.3deg) scale(1.002);
-          }
-          75% {
-            transform: rotate(-0.5deg) scale(0.998);
-          }
-          85% {
-            transform: rotate(0.4deg) scale(1.001);
-          }
-          100% {
-            transform: rotate(0deg) scale(1);
-          }
-        }
-        @keyframes jiggleEnvelopeIntense {
-          0% {
-            transform: rotate(0deg) scale(1);
-          }
-          15% {
-            transform: rotate(-2deg) scale(0.99);
-          }
-          30% {
-            transform: rotate(3deg) scale(1.02);
-          }
-          45% {
-            transform: rotate(-2.5deg) scale(0.98);
-          }
-          60% {
-            transform: rotate(2deg) scale(1.03);
-          }
-          75% {
-            transform: rotate(-3deg) scale(0.99);
-          }
-          85% {
-            transform: rotate(2.5deg) scale(1.02);
-          }
-          100% {
-            transform: rotate(0deg) scale(1);
-          }
-        }
-        @keyframes rainbowOverlay {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-        @keyframes rainbowShadow {
-          0% {
-            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.1))
-              drop-shadow(0 0 12px rgba(255, 0, 255, 0.1));
-          }
-          33% {
-            filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.1))
-              drop-shadow(0 0 12px rgba(255, 255, 0, 0.1));
-          }
-          66% {
-            filter: drop-shadow(0 0 8px rgba(0, 0, 255, 0.1))
-              drop-shadow(0 0 12px rgba(0, 255, 255, 0.1));
-          }
-          100% {
-            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.1))
-              drop-shadow(0 0 12px rgba(255, 0, 255, 0.1));
-          }
-        }
-        @keyframes eggShake {
-          0% {
-            transform: rotate(0deg) scale(1.2);
-          }
-          2% {
-            transform: rotate(-2deg) scale(1.35);
-          }
-          4% {
-            transform: rotate(2deg) scale(1.3);
-          }
-          6% {
-            transform: rotate(-2.5deg) scale(1.35);
-          }
-          8% {
-            transform: rotate(2.5deg) scale(1.3);
-          }
-          10% {
-            transform: rotate(-2deg) scale(1.35);
-          }
-          12% {
-            transform: rotate(2deg) scale(1.3);
-          }
-          14% {
-            transform: rotate(-2.5deg) scale(1.35);
-          }
-          16% {
-            transform: rotate(2.5deg) scale(1.3);
-          }
-          18% {
-            transform: rotate(-2deg) scale(1.35);
-          }
-          20% {
-            transform: rotate(0deg) scale(1.3);
-          }
-          90% {
-            transform: rotate(0deg) scale(1.3);
-          }
-          100% {
-            transform: rotate(0deg) scale(1);
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            background-position: 200% center;
-          }
-          100% {
-            background-position: -200% center;
-          }
-        }
-        @keyframes pressProgress {
-          0% {
-            transform: scaleX(0);
-          }
-          100% {
-            transform: scaleX(1);
-          }
-        }
-      `}</style>
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          pointerEvents: 'none',
-          zIndex: 9999,
-          animation: isShaking
-            ? 'saturate 0.6s cubic-bezier(.36,.07,.19,.97) both'
-            : 'none',
-          mixBlendMode: 'saturation',
-        }}
-      />
-      <div
-        style={{
-          position: 'relative',
-          width: '100vw',
-          height: '100vh',
-          overflow: 'hidden',
-        }}
-      >
-        {/* top bar */}
+        `}</style>
         <div
           style={{
             position: 'absolute',
-            zIndex: 3,
-            height: TOP_BAR_HEIGHT,
-            borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-            justifyContent: 'space-between',
-            padding: '8px 16px',
             top: 0,
             left: 0,
-            display: 'flex',
             width: '100vw',
-            margin: 0,
-            backgroundColor: 'rgba(255, 220, 180, 0.8)',
-            backdropFilter:
-              'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
-            WebkitBackdropFilter:
-              'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
-            boxShadow: '0 1px 25px rgba(255, 160, 60, 0.3)',
+            height: '100vh',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            animation: isShaking
+              ? 'saturate 0.6s cubic-bezier(.36,.07,.19,.97) both'
+              : 'none',
+            mixBlendMode: 'saturation',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            width: '100vw',
+            height: '100vh',
+            overflow: 'hidden',
           }}
         >
-          <p
-            onClick={handleJuiceClick}
+          {/* top bar */}
+          <div
             style={{
-              cursor: 'pointer',
-              color: 'rgba(0, 0, 0, 0.8)',
-              fontWeight: 500,
+              position: 'absolute',
+              zIndex: 3,
+              height: TOP_BAR_HEIGHT,
+              borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+              justifyContent: 'space-between',
+              padding: '8px 16px',
+              top: 0,
+              left: 0,
+              display: 'flex',
+              width: '100vw',
+              margin: 0,
+              backgroundColor: 'rgba(255, 220, 180, 0.8)',
+              backdropFilter:
+                'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
+              WebkitBackdropFilter:
+                'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
+              boxShadow: '0 1px 25px rgba(255, 160, 60, 0.3)',
             }}
           >
-            Juice
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 16 }}>
-            <div
-              style={{
-                display: 'flex',
-                border: '1px solid #000',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                borderRadius: 4,
-                padding: '2px 4px',
-                minWidth: 42,
-                gap: 6,
-                transition: 'all 0.3s ease',
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                borderColor: '#000',
-              }}
-            >
-              <img style={{ width: 14, height: 14 }} src={'./kudos.png'} />
-              <p
-                style={{
-                  fontSize: 16,
-                  color: '#000',
-                  fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
-                }}
-              >
-                {userData?.totalKudos || 0}
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                border: '1px solid #000',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                borderRadius: 4,
-                padding: '2px 4px',
-                minWidth: 42,
-                gap: 6,
-                transition: 'all 0.3s ease',
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                borderColor: '#000',
-              }}
-            >
-              <img
-                style={{ width: 14, height: 14 }}
-                src={'/jungle/token.png'}
-              />
-              <p
-                style={{
-                  fontSize: 16,
-                  color: '#000',
-                  fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
-                }}
-              >
-                {userData?.totalTokens || 0}
-              </p>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                border: '1px solid #000',
-                alignItems: 'center',
-                justifyContent: 'space-around',
-                borderRadius: 4,
-                padding: '2px 4px',
-                minWidth: 42,
-                gap: 6,
-                transition: 'all 0.3s ease',
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                borderColor: '#000',
-              }}
-            >
-              <img
-                style={{ width: 14, height: 14 }}
-                src={'/jungle/goldToken.png'}
-              />
-              <p
-                style={{
-                  fontSize: 16,
-                  color: '#000',
-                  fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
-                }}
-              >
-                {userData?.totalRedeemableTokens || 0}
-              </p>
-            </div>
             <p
+              onClick={handleJuiceClick}
               style={{
+                cursor: 'pointer',
+                width: 225,
                 color: 'rgba(0, 0, 0, 0.8)',
                 fontWeight: 500,
               }}
             >
-              {formattedTime}
+              Juice
             </p>
+
+            <div style={{position: 'relative'}} data-rabbit-component="true">
+              <RabbitMessage
+                isVisible={isRabbitMessageVisible}
+                onClaimLuck={handleClaimLuck}
+              />
+              <img
+                style={{
+                  height: 24,
+                  marginTop: 0,
+                  cursor: 'pointer',
+                  animation: isRabbitShaking ? 'rabbitIconShake 0.5s ease-in-out infinite' : 'none'
+                }}
+                src="./rabbit.png"
+                onClick={handleRabbitClick}
+                data-rabbit-component="true"
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 16 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  border: '1px solid #000',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  borderRadius: 4,
+                  padding: '2px 4px',
+                  minWidth: 42,
+                  gap: 6,
+                  transition: 'all 0.3s ease',
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  borderColor: '#000',
+                }}
+              >
+                <img style={{ width: 14, height: 14 }} src={'./kudos.png'} />
+                <p
+                  style={{
+                    fontSize: 16,
+                    color: '#000',
+                    fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
+                  }}
+                >
+                  {userData?.totalKudos || 0}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  border: '1px solid #000',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  borderRadius: 4,
+                  padding: '2px 4px',
+                  minWidth: 42,
+                  gap: 6,
+                  transition: 'all 0.3s ease',
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  borderColor: '#000',
+                }}
+              >
+                <img
+                  style={{ width: 14, height: 14 }}
+                  src={'/jungle/token.png'}
+                />
+                <p
+                  style={{
+                    fontSize: 16,
+                    color: '#000',
+                    fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
+                  }}
+                >
+                  {userData?.totalTokens || 0}
+                </p>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  border: '1px solid #000',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                  borderRadius: 4,
+                  padding: '2px 4px',
+                  minWidth: 42,
+                  gap: 6,
+                  transition: 'all 0.3s ease',
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  borderColor: '#000',
+                }}
+              >
+                <img
+                  style={{ width: 14, height: 14 }}
+                  src={'/jungle/goldToken.png'}
+                />
+                <p
+                  style={{
+                    fontSize: 16,
+                    color: '#000',
+                    fontWeight: userData?.totalKudos > 0 ? 'bold' : 'normal',
+                  }}
+                >
+                  {userData?.totalRedeemableTokens || 0}
+                </p>
+              </div>
+              <p
+                style={{
+                  color: 'rgba(0, 0, 0, 0.8)',
+                  fontWeight: 500,
+                }}
+              >
+                {formattedTime}
+              </p>
+            </div>
           </div>
-        </div>
-        <div
-          style={{
-            zIndex: 3,
-            position: 'absolute',
-            bottom: 0,
-            paddingBottom: 32,
-            paddingTop: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: 8,
-            width: '100vw',
-            cursor: 'pointer',
-          }}
-        >
           <div
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
             style={{
-              position: 'relative',
+              zIndex: 3,
+              position: 'absolute',
+              bottom: 0,
+              paddingBottom: 32,
+              paddingTop: 32,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              height: 8,
+              width: '100vw',
+              cursor: 'pointer',
             }}
           >
-            {userData?.Tamagotchi?.length > 0 ? (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-246px',
-                  padding: 8,
-                  overflow: "hidden",
-                  width: 196,
-                  border: '1px solid #000',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: isHovered ? 'space-between' : 'center',
-                  height: 232,
-                  backgroundColor: '#fff',
-                  borderRadius: isHovered ? '8px' : '1000px',
-                  transform: `
-                scale(${!isHovered ? 0 : isExpanded ? shakeValues.scale : 1})
-                rotate(${shakeValues.rotate}deg)
-              `,
-                  transition: `
-                transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                border-radius 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                  isHovered ? '0.2s' : '0s'
-                },
-                justify-content 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                  isHovered ? '0.5s' : '0s'
-                }
-              `,
-                  transformOrigin: 'bottom center',
-                }}
-                onMouseDown={handleTamagotchiMouseDown}
-                onMouseUp={handleTamagotchiMouseUp}
-                onMouseLeave={handleTamagotchiMouseUp}
-              >
-                {/* Add this progress indicator */}
-                {showPressIndicator && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: 4,
-                      backgroundColor: '#ff0000',
-                      transformOrigin: 'left',
-                      transform: `scaleX(${
-                        pressStartTime ? (Date.now() - pressStartTime) / 10000 : 0
-                      })`,
-                      transition: 'transform 0.1s linear',
-                    }}
-                  />
-                )}
-                <p
-                  style={{
-                    fontSize: 12,
-                    height: isHovered ? 12 : 0,
-                    opacity: isHovered ? 1 : 0,
-                    marginTop: isHovered ? 0 : 0,
-                    transition: `
-                  opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  }
-                `,
-                  }}
-                >
-                  {`10 days of tamagotchi - day ${getTamagotchiDay(
-                    userData?.Tamagotchi?.[0]?.startDate
-                  )}`
-                    .split('')
-                    .map((char, i) => {
-                      const text = `10 days of tamagotchi - day ${getTamagotchiDay(
-                        userData?.Tamagotchi?.[0]?.startDate
-                      )}`;
-                      const position = Math.floor(
-                        (Date.now() / 30) % text.length
-                      );
-                      return (
-                        <span
-                          key={i}
-                          style={{
-                            color:
-                              isHovered && i === position
-                                ? '#FF0000'
-                                : '#000000',
-                            display: 'inline-block',
-                            height: isHovered ? 12 : 0,
-                            opacity: isHovered ? 1 : 0,
-                            whiteSpace: 'pre',
-                            fontSize: 14,
-                          }}
-                        >
-                          {char}
-                        </span>
-                      );
-                    })}
-                </p>
-                <div
-                  onClick={handleSquareClick}
-                  style={{
-                    height: 96,
-                    marginTop: isHovered ? 8 : 14,
-                    marginBottom: isHovered ? 0 : 0,
-                    borderRadius: 8,
-                    width: 96,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: `
-                    margin 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                      isHovered ? '0.5s' : '0s'
-                    },
-                    transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)
-                  `,
-                  }}
-                >
-                  {isTamagotchiDead(userData) ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <p style={{ fontSize: 12, textAlign: 'center' }}>
-                        I don't see your tamagotchi. pls refresh :)
-                      </p>
-                    </div>
-                  ) : (
-                    <img
-                      src={
-                        isTamagotchiDead(userData)
-                          ? '🪦'
-                          : `./${
-                              userData?.email
-                                ? getTamagotchiType(userData.email)
-                                : 'kiwibird.gif'
-                            }`
-                      }
-                      alt="Tamagotchi Pet"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        borderRadius: 8,
-                      }}
-                    />
-                  )}
-                </div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    height: isHovered ? 'auto' : 0,
-                    opacity: isHovered ? 1 : 0,
-                    marginTop: isHovered ? 0 : 0,
-                    transition: `
-                  opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  }
-                `,
-                  }}
-                >
-                  {getMessage(userData)}
-                </p>
-
-                {/* Commit graph visualization */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(10, 1fr)',
-                  gap: 2,
-                  width: '216px',
-                  padding: '0 16px',
-                  opacity: isHovered ? 1 : 0,
-                  height: isHovered ? '16px' : 0,
-                  transition: `
-                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${isHovered ? '0.5s' : '0s'},
-                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${isHovered ? '0.5s' : '0s'}
-                  `
-                }}>
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const dayNumber = i + 1;
-                    const currentDay = getTamagotchiDay(userData?.Tamagotchi?.[0]?.startDate);
-                    const hasActivity = dayNumber <= currentDay;
-                    const hasOmgMoments = dayHasOmgMoments(dayNumber);
-                    const isToday = dayNumber === currentDay;
-                    const dayHours = hasOmgMoments ? getDayHours(dayNumber) : "0.0";
-                    
-                    return (
-                      <div
-                        key={i}
-                        style={{
-                          width: '16px',
-                          height: "16px",
-                          aspectRatio: '1',
-                          backgroundColor: hasOmgMoments ? '#4CAF50' : (hasActivity ? '#E0E0E0' : '#F5F5F5'),
-                          borderRadius: 2,
-                          border: isToday ? '2px solid #1E88E5' : '1px solid rgba(0,0,0,0.1)',
-                          transition: 'transform 0.2s ease, filter 0.2s ease',
-                          cursor: hasOmgMoments ? 'pointer' : 'default',
-                          position: 'relative',
-                        }}
-                        onClick={() => {
-                          if (hasOmgMoments) {
-                            setSelectedDay(dayNumber);
-                            setDayMoments(getDayMoments(dayNumber));
-                          }
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.2)';
-                          e.currentTarget.style.filter = 'brightness(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                          e.currentTarget.style.filter = 'brightness(1)';
-                        }}
-                      >
-                        {hasOmgMoments && (
-                          <span style={{
-                            fontSize: '8px',
-                            color: 'white',
-                            textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
-                            fontWeight: 'bold'
-                          }}>
-                            {dayHours}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    height: isHovered ? 24 : 0,
-                    opacity: isHovered ? 1 : 0,
-                    marginTop: isHovered ? 4 : 0,
-                    transition: `
-                  opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  }
-                `,
-                  }}
-                >
-                  Today's progress: {getTodayProgress()}
-                </p>
-
-                {/* <p
-                  style={{
-                    fontSize: 12,
-                    height: isHovered ? 24 : 0,
-                    opacity: isHovered ? 1 : 0,
-                    marginTop: isHovered ? 4 : 0,
-                    transition: `
-                  opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  }
-                `,
-                  }}
-                >
-                  Current streak: {getTamagotchiStreak()} days
-                </p> */}
-              </div>
-            ) : (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-150px',
-                  padding: 8,
-                  width: 142,
-                  border: '1px solid #000',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: isHovered ? 'space-between' : 'center',
-                  height: 142,
-                  backgroundColor: '#fff',
-                  borderRadius: isHovered ? '8px' : '1000px',
-                  transform: `
-                scale(${!isHovered ? 0 : isExpanded ? shakeValues.scale : 1})
-                rotate(${shakeValues.rotate}deg)
-              `,
-                  transition: `
-                transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                border-radius 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                  isHovered ? '0.2s' : '0s'
-                },
-                justify-content 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                  isHovered ? '0.5s' : '0s'
-                }
-              `,
-                  transformOrigin: 'bottom center',
-                }}
-              >
-                <div
-                  onClick={handleSquareClick}
-                  style={{
-                    height: 96,
-                    marginTop: isHovered ? 8 : 14,
-                    marginBottom: isHovered ? 0 : 0,
-                    borderRadius: 8,
-                    width: 96,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: `
-                    margin 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                      isHovered ? '0.5s' : '0s'
-                    },
-                    transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)
-                  `,
-                  }}
-                >
-                  {isTamagotchiDead(userData) ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <p style={{ fontSize: 12, textAlign: 'center' }}>
-                        Refresh Please 
-                      </p>
-                    </div>
-                  ) : (
-                    <img
-                      src={`/${
-                        userData?.email
-                          ? getEggColor(userData.email)
-                          : 'blueegg.gif'
-                      }`}
-                      alt="Colored Egg"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        borderRadius: 8,
-                      }}
-                    />
-                  )}
-                </div>
-
-                <p
-                  style={{
-                    fontSize: 12,
-                    height: isHovered ? 12 : 0,
-                    opacity: isHovered ? 1 : 0,
-                    marginTop: isHovered ? 0 : 0,
-                    transition: `
-                  opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  },
-                  margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
-                    isHovered ? '0.5s' : '0s'
-                  }
-                `,
-                  }}
-                >
-                  Tap to Hatch
-                </p>
-              </div>
-            )}
             <div
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               style={{
-                width: isHovered ? 520 : 300,
-                height: 16,
-                borderRadius: 16,
-                backgroundColor: 'transparent',
-                border: '1px solid #000',
-                transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                overflow: 'hidden',
                 position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {/* Colorful filled portion */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  height: '100%',
-                  width: `${getProgressPercentage(userData)}%`,
-                  background: `
-                    linear-gradient(
-                      90deg,
-                      #FF61D8 0%,
-                      #FFA84B 15%,
-                      #FFE81A 30%,
-                      #76FF7A 45%,
-                      #32F2F2 60%,
-                      #A97FFF 75%,
-                      #FF61D8 90%
-                    )
+              {userData?.Tamagotchi?.length > 0 ? (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-246px',
+                    padding: 8,
+                    overflow: "hidden",
+                    width: 196,
+                    border: '1px solid #000',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: isHovered ? 'space-between' : 'center',
+                    height: 232,
+                    backgroundColor: '#fff',
+                    borderRadius: isHovered ? '8px' : '1000px',
+                    transform: `
+                  scale(${!isHovered ? 0 : isExpanded ? shakeValues.scale : 1})
+                  rotate(${shakeValues.rotate}deg)
+                `,
+                    transition: `
+                  transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  border-radius 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                    isHovered ? '0.2s' : '0s'
+                  },
+                  justify-content 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                    isHovered ? '0.5s' : '0s'
+                  }
+                `,
+                    transformOrigin: 'bottom center',
+                  }}
+                  onMouseDown={handleTamagotchiMouseDown}
+                  onMouseUp={handleTamagotchiMouseUp}
+                  onMouseLeave={handleTamagotchiMouseUp}
+                >
+                  {/* Add this progress indicator */}
+                  {showPressIndicator && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: 4,
+                        backgroundColor: '#ff0000',
+                        transformOrigin: 'left',
+                        transform: `scaleX(${
+                          pressStartTime ? (Date.now() - pressStartTime) / 10000 : 0
+                        })`,
+                        transition: 'transform 0.1s linear',
+                      }}
+                    />
+                  )}
+                  <p
+                    style={{
+                      fontSize: 12,
+                      height: isHovered ? 12 : 0,
+                      opacity: isHovered ? 1 : 0,
+                      marginTop: isHovered ? 0 : 0,
+                      transition: `
+                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    }
                   `,
-                  backgroundSize: '200% auto',
-                  transition: 'width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                  animation: 'shimmer 3s linear infinite',
-                  opacity: 0.9,
-                }}
-              />
-              {/* Original style background */}
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  height: '100%',
-                  width: '100%',
-                  background: `
-                    linear-gradient(
-                      90deg,
-                      rgba(255,255,255,1) 0%,
-                      rgba(255,220,250,0.4) 25%,
-                      rgba(220,250,255,0.4) 35%,
-                      rgba(255,255,255,1) 50%,
-                      rgba(220,255,250,0.4) 65%,
-                      rgba(250,220,255,0.4) 75%,
-                      rgba(255,255,255,1) 100%
-                    )
+                    }}
+                  >
+                    {`10 days of tamagotchi - day ${getTamagotchiDay(
+                      userData?.Tamagotchi?.[0]?.startDate
+                    )}`
+                      .split('')
+                      .map((char, i) => {
+                        const text = `10 days of tamagotchi - day ${getTamagotchiDay(
+                          userData?.Tamagotchi?.[0]?.startDate
+                        )}`;
+                        const position = Math.floor(
+                          (Date.now() / 30) % text.length
+                        );
+                        return (
+                          <span
+                            key={i}
+                            style={{
+                              color:
+                                isHovered && i === position
+                                  ? '#FF0000'
+                                  : '#000000',
+                              display: 'inline-block',
+                              height: isHovered ? 12 : 0,
+                              opacity: isHovered ? 1 : 0,
+                              whiteSpace: 'pre',
+                              fontSize: 14,
+                            }}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
+                  </p>
+                  <div
+                    onClick={handleSquareClick}
+                    style={{
+                      height: 96,
+                      marginTop: isHovered ? 8 : 14,
+                      marginBottom: isHovered ? 0 : 0,
+                      borderRadius: 8,
+                      width: 96,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: `
+                      margin 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                        isHovered ? '0.5s' : '0s'
+                      },
+                      transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+                    `,
+                    }}
+                  >
+                    {isTamagotchiDead(userData) ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <p style={{ fontSize: 12, textAlign: 'center' }}>
+                          I don't see your tamagotchi. pls refresh :)
+                        </p>
+                      </div>
+                    ) : (
+                      <img
+                        src={
+                          isTamagotchiDead(userData)
+                            ? '🪦'
+                            : `./${
+                                userData?.email
+                                  ? getTamagotchiType(userData.email)
+                                  : 'kiwibird.gif'
+                              }`
+                        }
+                        alt="Tamagotchi Pet"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          borderRadius: 8,
+                        }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      height: isHovered ? 'auto' : 0,
+                      opacity: isHovered ? 1 : 0,
+                      marginTop: isHovered ? 0 : 0,
+                      transition: `
+                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    }
                   `,
-                  backgroundSize: '200% auto',
-                  animation: 'shimmer 3s linear infinite',
-                }}
-              />
-              {/* Percentage text */}
+                    }}
+                  >
+                    {getMessage(userData)}
+                  </p>
+
+                  {/* Commit graph visualization */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(10, 1fr)',
+                    gap: 2,
+                    width: '216px',
+                    padding: '0 16px',
+                    opacity: isHovered ? 1 : 0,
+                    height: isHovered ? '16px' : 0,
+                    transition: `
+                      opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${isHovered ? '0.5s' : '0s'},
+                      height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${isHovered ? '0.5s' : '0s'}
+                    `
+                  }}>
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const dayNumber = i + 1;
+                      const currentDay = getTamagotchiDay(userData?.Tamagotchi?.[0]?.startDate);
+                      const hasActivity = dayNumber <= currentDay;
+                      const hasOmgMoments = dayHasOmgMoments(dayNumber);
+                      const isToday = dayNumber === currentDay;
+                      const dayHours = hasOmgMoments ? getDayHours(dayNumber) : "0.0";
+
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            width: '16px',
+                            height: "16px",
+                            aspectRatio: '1',
+                            backgroundColor: hasOmgMoments ? '#4CAF50' : (hasActivity ? '#E0E0E0' : '#F5F5F5'),
+                            borderRadius: 2,
+                            border: isToday ? '2px solid #1E88E5' : '1px solid rgba(0,0,0,0.1)',
+                            transition: 'transform 0.2s ease, filter 0.2s ease',
+                            cursor: hasOmgMoments ? 'pointer' : 'default',
+                            position: 'relative',
+                          }}
+                          onClick={() => {
+                            if (hasOmgMoments) {
+                              setSelectedDay(dayNumber);
+                              setDayMoments(getDayMoments(dayNumber));
+                            }
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.2)';
+                            e.currentTarget.style.filter = 'brightness(1.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.filter = 'brightness(1)';
+                          }}
+                        >
+                          {hasOmgMoments && (
+                            <span style={{
+                              fontSize: '8px',
+                              color: 'white',
+                              textShadow: '0px 0px 2px rgba(0,0,0,0.5)',
+                              fontWeight: 'bold'
+                            }}>
+                              {dayHours}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p
+                    style={{
+                      fontSize: 12,
+                      height: isHovered ? 24 : 0,
+                      opacity: isHovered ? 1 : 0,
+                      marginTop: isHovered ? 4 : 0,
+                      transition: `
+                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    }
+                  `,
+                    }}
+                  >
+                    Today's progress: {getTodayProgress()}
+                  </p>
+
+                  {/* <p
+                    style={{
+                      fontSize: 12,
+                      height: isHovered ? 24 : 0,
+                      opacity: isHovered ? 1 : 0,
+                      marginTop: isHovered ? 4 : 0,
+                      transition: `
+                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    }
+                  `,
+                    }}
+                  >
+                    Current streak: {getTamagotchiStreak()} days
+                  </p> */}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-150px',
+                    padding: 8,
+                    width: 142,
+                    border: '1px solid #000',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: isHovered ? 'space-between' : 'center',
+                    height: 142,
+                    backgroundColor: '#fff',
+                    borderRadius: isHovered ? '8px' : '1000px',
+                    transform: `
+                  scale(${!isHovered ? 0 : isExpanded ? shakeValues.scale : 1})
+                  rotate(${shakeValues.rotate}deg)
+                `,
+                    transition: `
+                  transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                  border-radius 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                    isHovered ? '0.2s' : '0s'
+                  },
+                  justify-content 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                    isHovered ? '0.5s' : '0s'
+                  }
+                `,
+                    transformOrigin: 'bottom center',
+                  }}
+                >
+                  <div
+                    onClick={handleSquareClick}
+                    style={{
+                      height: 96,
+                      marginTop: isHovered ? 8 : 14,
+                      marginBottom: isHovered ? 0 : 0,
+                      borderRadius: 8,
+                      width: 96,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: `
+                      margin 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                        isHovered ? '0.5s' : '0s'
+                      },
+                      transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+                    `,
+                    }}
+                  >
+                    {isTamagotchiDead(userData) ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <p style={{ fontSize: 12, textAlign: 'center' }}>
+                          Refresh Please
+                        </p>
+                      </div>
+                    ) : (
+                      <img
+                        src={`/${
+                          userData?.email
+                            ? getEggColor(userData.email)
+                            : 'blueegg.gif'
+                        }`}
+                        alt="Colored Egg"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          borderRadius: 8,
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <p
+                    style={{
+                      fontSize: 12,
+                      height: isHovered ? 12 : 0,
+                      opacity: isHovered ? 1 : 0,
+                      marginTop: isHovered ? 0 : 0,
+                      transition: `
+                    opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    },
+                    margin-top 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${
+                      isHovered ? '0.5s' : '0s'
+                    }
+                  `,
+                    }}
+                  >
+                    Tap to Hatch
+                  </p>
+                </div>
+              )}
               <div
                 style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: 0,
-                  height: '100%',
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  mixBlendMode: 'difference',
-                  color: '#fff',
+                  width: isHovered ? 520 : 300,
+                  height: 16,
+                  borderRadius: 16,
+                  backgroundColor: 'transparent',
+                  border: '1px solid #000',
+                  transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  overflow: 'hidden',
+                  position: 'relative',
                 }}
               >
-                {userData?.Tamagotchi?.length
-                  ? `${getProgressPercentage(userData).toFixed(1)}%`
-                  : ''}
+                {/* Colorful filled portion */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    width: `${getProgressPercentage(userData)}%`,
+                    background: `
+                      linear-gradient(
+                        90deg,
+                        #FF61D8 0%,
+                        #FFA84B 15%,
+                        #FFE81A 30%,
+                        #76FF7A 45%,
+                        #32F2F2 60%,
+                        #A97FFF 75%,
+                        #FF61D8 90%
+                      )
+                    `,
+                    backgroundSize: '200% auto',
+                    transition: 'width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    animation: 'shimmer 3s linear infinite',
+                    opacity: 0.9,
+                  }}
+                />
+                {/* Original style background */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    width: '100%',
+                    background: `
+                      linear-gradient(
+                        90deg,
+                        rgba(255,255,255,1) 0%,
+                        rgba(255,220,250,0.4) 25%,
+                        rgba(220,250,255,0.4) 35%,
+                        rgba(255,255,255,1) 50%,
+                        rgba(220,255,250,0.4) 65%,
+                        rgba(250,220,255,0.4) 75%,
+                        rgba(255,255,255,1) 100%
+                      )
+                    `,
+                    backgroundSize: '200% auto',
+                    animation: 'shimmer 3s linear infinite',
+                  }}
+                />
+                {/* Percentage text */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    height: '100%',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    mixBlendMode: 'difference',
+                    color: '#fff',
+                  }}
+                >
+                  {userData?.Tamagotchi?.length
+                    ? `${getProgressPercentage(userData).toFixed(1)}%`
+                    : ''}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        {openWindows.includes('welcomeWindow') && (
-          <WelcomeWindow
-            isJungle={isJungle}
-            position={welcomePosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'welcomeWindow'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('welcomeWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('welcomeWindow')}
-            setOpenWindows={setOpenWindows}
-            setWindowOrder={setWindowOrder}
-            openWindows={openWindows}
-            isLoggedIn={isLoggedIn}
-            isVideoOpen={openWindows.includes('video')}
-          />
-        )}
+          {openWindows.includes('welcomeWindow') && (
+            <WelcomeWindow
+              isJungle={isJungle}
+              position={welcomePosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'welcomeWindow'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('welcomeWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('welcomeWindow')}
+              setOpenWindows={setOpenWindows}
+              setWindowOrder={setWindowOrder}
+              openWindows={openWindows}
+              isLoggedIn={isLoggedIn}
+              isVideoOpen={openWindows.includes('video')}
+            />
+          )}
 
-        {openWindows.includes('achievements') && (
-          <AchievementsWindow
-            position={achievementsPosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'achievements'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            selectedRank={selectedRank}
-            setSelectedRank={setSelectedRank}
-            BASE_Z_INDEX={getWindowZIndex('achievements')}
-            ACTIVE_Z_INDEX={getWindowZIndex('achievements')}
-            userData={userData}
-          />
-        )}
+          {openWindows.includes('achievements') && (
+            <AchievementsWindow
+              position={achievementsPosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'achievements'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              selectedRank={selectedRank}
+              setSelectedRank={setSelectedRank}
+              BASE_Z_INDEX={getWindowZIndex('achievements')}
+              ACTIVE_Z_INDEX={getWindowZIndex('achievements')}
+              userData={userData}
+            />
+          )}
 
-        {openWindows.includes('wutIsJuice') && (
-          <WutIsJuiceWindow
-            position={wutIsJuicePosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'wutIsJuice'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('wutIsJuice')}
-            ACTIVE_Z_INDEX={getWindowZIndex('wutIsJuice')}
-          />
-        )}
+          {openWindows.includes('wutIsJuice') && (
+            <WutIsJuiceWindow
+              position={wutIsJuicePosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'wutIsJuice'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('wutIsJuice')}
+              ACTIVE_Z_INDEX={getWindowZIndex('wutIsJuice')}
+            />
+          )}
 
-        {openWindows.includes('wutIsJungle') && (
-          <WutIsJungleWindow
-            position={wutIsJunglePosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'wutIsJungle'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('wutIsJungle')}
-            ACTIVE_Z_INDEX={getWindowZIndex('wutIsJungle')}
-          />
-        )}
+          {openWindows.includes('wutIsJungle') && (
+            <WutIsJungleWindow
+              position={wutIsJunglePosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'wutIsJungle'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('wutIsJungle')}
+              ACTIVE_Z_INDEX={getWindowZIndex('wutIsJungle')}
+            />
+          )}
 
-        {openWindows.includes('register') && (
-          <RegisterWindow
-            position={registerPosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'register'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('register')}
-            ACTIVE_Z_INDEX={getWindowZIndex('register')}
-            isLoggedIn={isLoggedIn}
-            setIsLoggedIn={setIsLoggedIn}
-            setUserData={setUserData}
-          />
-        )}
+          {openWindows.includes('register') && (
+            <RegisterWindow
+              position={registerPosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'register'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('register')}
+              ACTIVE_Z_INDEX={getWindowZIndex('register')}
+              isLoggedIn={isLoggedIn}
+              setIsLoggedIn={setIsLoggedIn}
+              setUserData={setUserData}
+            />
+          )}
 
-        {openWindows.includes('video') && (
-          <VideoWindow
-            position={videoPosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'video'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('video')}
-            ACTIVE_Z_INDEX={getWindowZIndex('video')}
-          />
-        )}
+          {openWindows.includes('video') && (
+            <VideoWindow
+              position={videoPosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'video'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('video')}
+              ACTIVE_Z_INDEX={getWindowZIndex('video')}
+            />
+          )}
 
-        {openWindows.includes('faction') && (
-          <FactionWindow
-            position={factionPosition}
-            isDragging={isDragging && activeWindow === 'faction'}
-            isActive={windowOrder[windowOrder.length - 1] === 'faction'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('faction')}
-            ACTIVE_Z_INDEX={getWindowZIndex('faction')}
-            userData={userData}
-            setUserData={setUserData}
-          />
-        )}
+          {openWindows.includes('faction') && (
+            <FactionWindow
+              position={factionPosition}
+              isDragging={isDragging && activeWindow === 'faction'}
+              isActive={windowOrder[windowOrder.length - 1] === 'faction'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('faction')}
+              ACTIVE_Z_INDEX={getWindowZIndex('faction')}
+              userData={userData}
+              setUserData={setUserData}
+            />
+          )}
 
-        {openWindows.includes('firstChallenge') && (
-          <FirstChallengeWindow
-            position={firstChallengePosition}
-            isDragging={isDragging}
-            isActive={windowOrder[windowOrder.length - 1] === 'firstChallenge'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('firstChallenge')}
-            ACTIVE_Z_INDEX={getWindowZIndex('firstChallenge')}
-            userData={userData}
-            setUserData={setUserData}
-          />
-        )}
+          {openWindows.includes('firstChallenge') && (
+            <FirstChallengeWindow
+              position={firstChallengePosition}
+              isDragging={isDragging}
+              isActive={windowOrder[windowOrder.length - 1] === 'firstChallenge'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('firstChallenge')}
+              ACTIVE_Z_INDEX={getWindowZIndex('firstChallenge')}
+              userData={userData}
+              setUserData={setUserData}
+            />
+          )}
 
-        {openWindows.includes('juiceWindow') && (
-          <JuiceWindow
-            position={juiceWindowPosition}
-            isDragging={isDragging && activeWindow === 'juiceWindow'}
-            isActive={windowOrder[windowOrder.length - 1] === 'juiceWindow'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('juiceWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('juiceWindow')}
-            userData={userData}
-            setUserData={setUserData}
-            startJuicing={startJuicing}
-            playCollectSound={playCollectSound}
-            isJuicing={isJuicing}
-          />
-        )}
+          {openWindows.includes('juiceWindow') && (
+            <JuiceWindow
+              position={juiceWindowPosition}
+              isDragging={isDragging && activeWindow === 'juiceWindow'}
+              isActive={windowOrder[windowOrder.length - 1] === 'juiceWindow'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('juiceWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('juiceWindow')}
+              userData={userData}
+              setUserData={setUserData}
+              startJuicing={startJuicing}
+              playCollectSound={playCollectSound}
+              isJuicing={isJuicing}
+            />
+          )}
 
-        {openWindows.includes('jungleWindow') && (
-          <JungleWindow
-            position={jungleWindowPosition}
-            isDragging={isDragging && activeWindow === 'jungleWindow'}
-            isActive={windowOrder[windowOrder.length - 1] === 'jungleWindow'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('jungleWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('jungleWindow')}
-            userData={userData}
-            setUserData={setUserData}
-            startJuicing={startJuicing}
-            playCollectSound={playCollectSound}
-            isJuicing={isJuicing}
-          />
-        )}
+          {openWindows.includes('jungleWindow') && (
+            <JungleWindow
+              position={jungleWindowPosition}
+              isDragging={isDragging && activeWindow === 'jungleWindow'}
+              isActive={windowOrder[windowOrder.length - 1] === 'jungleWindow'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('jungleWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('jungleWindow')}
+              userData={userData}
+              setUserData={setUserData}
+              startJuicing={startJuicing}
+              playCollectSound={playCollectSound}
+              isJuicing={isJuicing}
+            />
+          )}
 
-        {openWindows.includes('fruitBasketWindow') && (
-          <FruitBasketWindow
-            position={fruitBasketWindowPosition}
-            isDragging={isDragging && activeWindow === 'fruitBasketWindow'}
-            isActive={
-              windowOrder[windowOrder.length - 1] === 'fruitBasketWindow'
-            }
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('fruitBasketWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('fruitBasketWindow')}
-            userData={userData}
-            setUserData={setUserData}
-            startJuicing={startJuicing}
-            playCollectSound={playCollectSound}
-            isJuicing={isJuicing}
-          />
-        )}
+          {openWindows.includes('fruitBasketWindow') && (
+            <FruitBasketWindow
+              position={fruitBasketWindowPosition}
+              isDragging={isDragging && activeWindow === 'fruitBasketWindow'}
+              isActive={
+                windowOrder[windowOrder.length - 1] === 'fruitBasketWindow'
+              }
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('fruitBasketWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('fruitBasketWindow')}
+              userData={userData}
+              setUserData={setUserData}
+              startJuicing={startJuicing}
+              playCollectSound={playCollectSound}
+              isJuicing={isJuicing}
+            />
+          )}
 
-        {openWindows.includes('jungleShopWindow') && (
-          <JungleShopWindow
-            position={jungleShopWindowPosition}
-            isDragging={isDragging && activeWindow === 'jungleShopWindow'}
-            isActive={
-              windowOrder[windowOrder.length - 1] === 'jungleShopWindow'
-            }
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('jungleShopWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('jungleShopWindow')}
-            userData={userData}
-            setUserData={setUserData}
-            startJuicing={startJuicing}
-            playCollectSound={playCollectSound}
-            isJuicing={isJuicing}
-            setOpenWindows={setOpenWindows}
-            setWindowOrder={setWindowOrder}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
+          {openWindows.includes('jungleShopWindow') && (
+            <JungleShopWindow
+              position={jungleShopWindowPosition}
+              isDragging={isDragging && activeWindow === 'jungleShopWindow'}
+              isActive={
+                windowOrder[windowOrder.length - 1] === 'jungleShopWindow'
+              }
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('jungleShopWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('jungleShopWindow')}
+              userData={userData}
+              setUserData={setUserData}
+              startJuicing={startJuicing}
+              playCollectSound={playCollectSound}
+              isJuicing={isJuicing}
+              setOpenWindows={setOpenWindows}
+              setWindowOrder={setWindowOrder}
+              isLoggedIn={isLoggedIn}
+            />
+          )}
 
-        {openWindows.includes('fortuneBasket') && (
-          <FortuneBasket
-            handleDismiss={() => handleDismiss('fortuneBasket')}
-            position={fortuneBasketPosition}
-            handleMouseDown={handleMouseDown}
-            handleWindowClick={handleWindowClick}
-            isDragging={isDragging && activeWindow === 'fortuneBasket'}
-            isActive={windowOrder[windowOrder.length - 1] === 'fortuneBasket'}
-            BASE_Z_INDEX={getWindowZIndex('fortuneBasket')}
-            ACTIVE_Z_INDEX={getWindowZIndex('fortuneBasket')}
-            style={{
-              animation: showCookies
-                ? 'fortuneCookiePop 0.4s ease forwards'
-                : 'none',
-              zIndex: getWindowZIndex('fortuneBasket'),
-              transform: `translate(${fortuneBasketPosition.x}px, ${fortuneBasketPosition.y}px)`,
-            }}
-          />
-        )}
+          {openWindows.includes('fortuneBasket') && (
+            <FortuneBasket
+              handleDismiss={() => handleDismiss('fortuneBasket')}
+              position={fortuneBasketPosition}
+              handleMouseDown={handleMouseDown}
+              handleWindowClick={handleWindowClick}
+              isDragging={isDragging && activeWindow === 'fortuneBasket'}
+              isActive={windowOrder[windowOrder.length - 1] === 'fortuneBasket'}
+              BASE_Z_INDEX={getWindowZIndex('fortuneBasket')}
+              ACTIVE_Z_INDEX={getWindowZIndex('fortuneBasket')}
+              style={{
+                animation: showCookies
+                  ? 'fortuneCookiePop 0.4s ease forwards'
+                  : 'none',
+                zIndex: getWindowZIndex('fortuneBasket'),
+                transform: `translate(${fortuneBasketPosition.x}px, ${fortuneBasketPosition.y}px)`,
+              }}
+            />
+          )}
 
-        {openWindows.includes('kudos') && (
-          <KudosWindow
-            position={kudosPosition}
-            isDragging={isDragging && activeWindow === 'kudos'}
-            isActive={windowOrder[windowOrder.length - 1] === 'kudos'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('kudos')}
-            ACTIVE_Z_INDEX={getWindowZIndex('kudos')}
-          />
-        )}
-        {openWindows.includes('Gallery') && (
-          <GalleryWindow
-            position={GalleryPosition}
-            isDragging={isDragging && activeWindow === 'Gallery'}
-            isActive={windowOrder[windowOrder.length - 1] === 'Gallery'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('Gallery')}
-            ACTIVE_Z_INDEX={getWindowZIndex('Gallery')}
-          />
-        )}
+          {openWindows.includes('kudos') && (
+            <KudosWindow
+              position={kudosPosition}
+              isDragging={isDragging && activeWindow === 'kudos'}
+              isActive={windowOrder[windowOrder.length - 1] === 'kudos'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('kudos')}
+              ACTIVE_Z_INDEX={getWindowZIndex('kudos')}
+            />
+          )}
+          {openWindows.includes('Gallery') && (
+            <GalleryWindow
+              position={GalleryPosition}
+              isDragging={isDragging && activeWindow === 'Gallery'}
+              isActive={windowOrder[windowOrder.length - 1] === 'Gallery'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('Gallery')}
+              ACTIVE_Z_INDEX={getWindowZIndex('Gallery')}
+            />
+          )}
 
-        {openWindows.includes('thanks') && (
-          <ThanksWindow
-            position={thanksPosition}
-            isDragging={isDragging && activeWindow === 'thanks'}
-            isActive={windowOrder[windowOrder.length - 1] === 'thanks'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('thanks')}
-            ACTIVE_Z_INDEX={getWindowZIndex('thanks')}
-          />
-        )}
+          {openWindows.includes('thanks') && (
+            <ThanksWindow
+              position={thanksPosition}
+              isDragging={isDragging && activeWindow === 'thanks'}
+              isActive={windowOrder[windowOrder.length - 1] === 'thanks'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('thanks')}
+              ACTIVE_Z_INDEX={getWindowZIndex('thanks')}
+            />
+          )}
 
-        {openWindows.includes('secondChallenge') && (
-          <SecondChallengeWindow
-            position={secondChallengePosition}
-            isDragging={isDragging && activeWindow === 'secondChallenge'}
-            isActive={windowOrder[windowOrder.length - 1] === 'secondChallenge'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('secondChallenge')}
-            ACTIVE_Z_INDEX={getWindowZIndex('secondChallenge')}
-            userData={userData}
-            setUserData={setUserData}
-          />
-        )}
+          {openWindows.includes('secondChallenge') && (
+            <SecondChallengeWindow
+              position={secondChallengePosition}
+              isDragging={isDragging && activeWindow === 'secondChallenge'}
+              isActive={windowOrder[windowOrder.length - 1] === 'secondChallenge'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('secondChallenge')}
+              ACTIVE_Z_INDEX={getWindowZIndex('secondChallenge')}
+              userData={userData}
+              setUserData={setUserData}
+            />
+          )}
 
-        {openWindows.includes('menuWindow') && (
-          <MenuWindow
-            position={menuWindowPosition}
-            isDragging={isDragging && activeWindow === 'menuWindow'}
-            isActive={windowOrder[windowOrder.length - 1] === 'menuWindow'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('menuWindow')}
-            ACTIVE_Z_INDEX={getWindowZIndex('menuWindow')}
-            userData={userData}
-            setUserData={setUserData}
-          />
-        )}
+          {openWindows.includes('menuWindow') && (
+            <MenuWindow
+              position={menuWindowPosition}
+              isDragging={isDragging && activeWindow === 'menuWindow'}
+              isActive={windowOrder[windowOrder.length - 1] === 'menuWindow'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('menuWindow')}
+              ACTIVE_Z_INDEX={getWindowZIndex('menuWindow')}
+              userData={userData}
+              setUserData={setUserData}
+            />
+          )}
 
-        {openWindows.includes('postcard') && (
-          <PostcardWindow
-            position={postcardPosition}
-            isDragging={isDragging && activeWindow === 'postcard'}
-            isActive={windowOrder[windowOrder.length - 1] === 'postcard'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('postcard')}
-            ACTIVE_Z_INDEX={getWindowZIndex('postcard')}
-            userData={userData}
-          />
-        )}
+          {openWindows.includes('postcard') && (
+            <PostcardWindow
+              position={postcardPosition}
+              isDragging={isDragging && activeWindow === 'postcard'}
+              isActive={windowOrder[windowOrder.length - 1] === 'postcard'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('postcard')}
+              ACTIVE_Z_INDEX={getWindowZIndex('postcard')}
+              userData={userData}
+            />
+          )}
 
-        {openWindows.includes('wutIsRelay') && (
-          <WutIsRelayWindow
-            position={wutIsRelayPosition}
-            isDragging={isDragging && activeWindow === 'wutIsRelay'}
-            isActive={windowOrder[windowOrder.length - 1] === 'wutIsRelay'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('wutIsRelay')}
-            ACTIVE_Z_INDEX={getWindowZIndex('wutIsRelay')}
-          />
-        )}
+          {openWindows.includes('wutIsRelay') && (
+            <WutIsRelayWindow
+              position={wutIsRelayPosition}
+              isDragging={isDragging && activeWindow === 'wutIsRelay'}
+              isActive={windowOrder[windowOrder.length - 1] === 'wutIsRelay'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('wutIsRelay')}
+              ACTIVE_Z_INDEX={getWindowZIndex('wutIsRelay')}
+            />
+          )}
 
-        {openWindows.includes('wutIsPenguathon') && (
-          <WutIsPenguathonWindow
-            position={wutIsPenguathonWindowPosition}
-            isDragging={isDragging && activeWindow === 'wutIsPenguathon'}
-            isActive={windowOrder[windowOrder.length - 1] === 'wutIsPenguathon'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('wutIsPenguathon')}
-            ACTIVE_Z_INDEX={getWindowZIndex('wutIsPenguathon')}
-          />
-        )}
+          {openWindows.includes('wutIsPenguathon') && (
+            <WutIsPenguathonWindow
+              position={wutIsPenguathonWindowPosition}
+              isDragging={isDragging && activeWindow === 'wutIsPenguathon'}
+              isActive={windowOrder[windowOrder.length - 1] === 'wutIsPenguathon'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('wutIsPenguathon')}
+              ACTIVE_Z_INDEX={getWindowZIndex('wutIsPenguathon')}
+            />
+          )}
 
-        {openWindows.includes('zero') && (
-          <ZeroWindow
-            position={zeroWindowPosition}
-            isDragging={isDragging && activeWindow === 'zero'}
-            isActive={windowOrder[windowOrder.length - 1] === 'zero'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('zero')}
-            ACTIVE_Z_INDEX={getWindowZIndex('zero')}
-          />
-        )}
+          {openWindows.includes('zero') && (
+            <ZeroWindow
+              position={zeroWindowPosition}
+              isDragging={isDragging && activeWindow === 'zero'}
+              isActive={windowOrder[windowOrder.length - 1] === 'zero'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('zero')}
+              ACTIVE_Z_INDEX={getWindowZIndex('zero')}
+            />
+          )}
 
-        {openWindows.includes('tamagotchiNotes') && (
-          <TamagotchiNotesWindow
-            position={tamagotchiNotesPosition}
-            isDragging={isDragging && activeWindow === 'tamagotchiNotes'}
-            isActive={windowOrder[windowOrder.length - 1] === 'tamagotchiNotes'}
-            handleMouseDown={handleMouseDown('tamagotchiNotes')}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('tamagotchiNotes')}
-            ACTIVE_Z_INDEX={getWindowZIndex('tamagotchiNotes')}
-          />
-        )}
+          {openWindows.includes('tamagotchiNotes') && (
+            <TamagotchiNotesWindow
+              position={tamagotchiNotesPosition}
+              isDragging={isDragging && activeWindow === 'tamagotchiNotes'}
+              isActive={windowOrder[windowOrder.length - 1] === 'tamagotchiNotes'}
+              handleMouseDown={handleMouseDown('tamagotchiNotes')}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('tamagotchiNotes')}
+              ACTIVE_Z_INDEX={getWindowZIndex('tamagotchiNotes')}
+            />
+          )}
 
-        {openWindows.includes('cardCreator') && (
-          <CardCreatorWindow
-            position={cardCreatorPosition}
-            isDragging={isDragging && activeWindow === 'cardCreator'}
-            isActive={windowOrder[windowOrder.length - 1] === 'cardCreator'}
-            handleMouseDown={handleMouseDown}
-            handleDismiss={handleDismiss}
-            handleWindowClick={handleWindowClick}
-            BASE_Z_INDEX={getWindowZIndex('cardCreator')}
-            ACTIVE_Z_INDEX={getWindowZIndex('cardCreator')}
-            userData={userData}
-          />
-        )}
+          {openWindows.includes('cardCreator') && (
+            <CardCreatorWindow
+              position={cardCreatorPosition}
+              isDragging={isDragging && activeWindow === 'cardCreator'}
+              isActive={windowOrder[windowOrder.length - 1] === 'cardCreator'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('cardCreator')}
+              ACTIVE_Z_INDEX={getWindowZIndex('cardCreator')}
+              userData={userData}
+            />
+          )}
 
-        <div
-          style={{
-            position: 'absolute',
-            top: TOP_BAR_HEIGHT,
-            left: 0,
-            // backgroundImage: 'url(background.GIF)',
-            backgroundSize: 'cover',
-            imageRendering: 'pixelated',
-            width: '100vw',
-            overflow: 'hidden',
-            // height: "100vh"
-          }}
-        >
+          {openWindows.includes('wutIsBubbleathon') && (
+            <WutIsBubbleathonWindow
+              position={wutIsBubbleathonWindowPosition}
+              isDragging={isDragging && activeWindow === 'wutIsBubbleathon'}
+              isActive={windowOrder[windowOrder.length - 1] === 'wutIsBubbleathon'}
+              handleMouseDown={handleMouseDown}
+              handleDismiss={handleDismiss}
+              handleWindowClick={handleWindowClick}
+              BASE_Z_INDEX={getWindowZIndex('wutIsBubbleathon')}
+              ACTIVE_Z_INDEX={getWindowZIndex('wutIsBubbleathon')}
+            />
+          )}
+
+
           <div
             style={{
-              display: 'flex',
-              gap: 8,
-              flexDirection: 'row',
-              padding: 8,
+              position: 'absolute',
+              top: TOP_BAR_HEIGHT,
+              left: 0,
+              // backgroundImage: 'url(background.GIF)',
+              backgroundSize: 'cover',
+              imageRendering: 'pixelated',
+              width: '100vw',
+              overflow: 'hidden',
+              // height: "100vh"
             }}
           >
-            <div>
-              {isLoggedIn && (
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                flexDirection: 'row',
+                padding: 8,
+              }}
+            >
+              <div>
+                {isLoggedIn && (
+                  <FileIcon
+                    text="Jungle"
+                    icon="./jungle/jungleicon.png"
+                    isSelected={selectedFile === 'Jungle'}
+                    onClick={handleFileClick('Jungle')}
+                    delay={0.5}
+                    data-file-id="Jungle"
+                  />
+                )}
+                {isJungle || (
+                  <FileIcon
+                    text="Achievements"
+                    icon="achievmentsicon.png"
+                    isSelected={selectedFile === 'Achievements'}
+                    onClick={handleFileClick('Achievements')}
+                    delay={0.1}
+                    data-file-id="Achievements"
+                  />
+                )}
                 <FileIcon
-                  text="Jungle"
-                  icon="./jungle/jungleicon.png"
-                  isSelected={selectedFile === 'Jungle'}
-                  onClick={handleFileClick('Jungle')}
+                  text="Fortune Basket"
+                  icon="./fortunecookieicon.png"
+                  isSelected={selectedFile === 'Fortune Basket'}
+                  onClick={handleFileClick('Fortune Basket')}
+                  delay={0.4}
+                  data-file-id="Fortune Basket"
+                />
+                {isLoggedIn && (
+                  <FileIcon
+                    text="Fruit Basket"
+                    icon="./jungle/fullbasket.png"
+                    isSelected={selectedFile === 'FruitBasket'}
+                    onClick={handleFileClick('FruitBasket')}
+                    delay={0.5}
+                    data-file-id="FruitBasket"
+                  />
+                )}
+                <FileIcon
+                  text="Cosmin's Jungle Shop"
+                  icon="./jungle/goldToken.png"
+                  isSelected={selectedFile === 'JungleShop'}
+                  onClick={handleFileClick('JungleShop')}
                   delay={0.5}
-                  data-file-id="Jungle"
+                  data-file-id="JungleShop"
                 />
-              )}
-              {isJungle || (
+              </div>
+              <div>
                 <FileIcon
-                  text="Achievements"
-                  icon="achievmentsicon.png"
-                  isSelected={selectedFile === 'Achievements'}
-                  onClick={handleFileClick('Achievements')}
-                  delay={0.1}
-                  data-file-id="Achievements"
+                  text={isLoggedIn ? 'Juicer' : 'Register'}
+                  icon={isLoggedIn ? './juicerRest.png' : 'registericon.png'}
+                  isSelected={
+                    selectedFile === (isLoggedIn ? 'Juicer' : 'Register')
+                  }
+                  onClick={handleFileClick(isLoggedIn ? 'Juicer' : 'Register')}
+                  delay={0.2}
+                  data-file-id={isLoggedIn ? 'Juicer' : 'Register'}
                 />
-              )}
-              <FileIcon
-                text="Fortune Basket"
-                icon="./fortunecookieicon.png"
-                isSelected={selectedFile === 'Fortune Basket'}
-                onClick={handleFileClick('Fortune Basket')}
-                delay={0.4}
-                data-file-id="Fortune Basket"
-              />
-              {isLoggedIn && (
                 <FileIcon
-                  text="Fruit Basket"
-                  icon="./jungle/fullbasket.png"
-                  isSelected={selectedFile === 'FruitBasket'}
-                  onClick={handleFileClick('FruitBasket')}
-                  delay={0.5}
-                  data-file-id="FruitBasket"
+                  text="video.mp4"
+                  icon="./thumbnail.png"
+                  isSelected={selectedFile === 'video.mp4'}
+                  onClick={handleFileClick('video.mp4')}
+                  delay={0.3}
+                  data-file-id="video.mp4"
                 />
-              )}
-              <FileIcon
-                text="Cosmin's Jungle Shop"
-                icon="./jungle/goldToken.png"
-                isSelected={selectedFile === 'JungleShop'}
-                onClick={handleFileClick('JungleShop')}
-                delay={0.5}
-                data-file-id="JungleShop"
-              />
-            </div>
-            <div>
-              <FileIcon
-                text={isLoggedIn ? 'Juicer' : 'Register'}
-                icon={isLoggedIn ? './juicerRest.png' : 'registericon.png'}
-                isSelected={
-                  selectedFile === (isLoggedIn ? 'Juicer' : 'Register')
-                }
-                onClick={handleFileClick(isLoggedIn ? 'Juicer' : 'Register')}
-                delay={0.2}
-                data-file-id={isLoggedIn ? 'Juicer' : 'Register'}
-              />
-              <FileIcon
-                text="video.mp4"
-                icon="./thumbnail.png"
-                isSelected={selectedFile === 'video.mp4'}
-                onClick={handleFileClick('video.mp4')}
-                delay={0.3}
-                data-file-id="video.mp4"
-              />
-              {isLoggedIn && (
-                <FileIcon
-                  text="Kudos"
-                  icon="./kudos.png"
-                  style={{ backgroundColor: '#000', color: '#fff' }}
-                  isSelected={selectedFile === 'Kudos'}
-                  onClick={handleFileClick('Kudos')}
-                  delay={0.5}
-                  data-file-id="Kudos"
-                />
-              )}
-              {isLoggedIn && (
-                <FileIcon
-                  text="Gallery"
-                  icon="./gallery.png"
-                  style={{ backgroundColor: '#000', color: '#fff' }}
-                  isSelected={selectedFile === 'Gallery'}
-                  onClick={handleFileClick('Gallery')}
-                  delay={0.5}
-                  data-file-id="Gallery"
-                />
-              )}
+                {isLoggedIn && (
+                  <FileIcon
+                    text="Kudos"
+                    icon="./kudos.png"
+                    style={{ backgroundColor: '#000', color: '#fff' }}
+                    isSelected={selectedFile === 'Kudos'}
+                    onClick={handleFileClick('Kudos')}
+                    delay={0.5}
+                    data-file-id="Kudos"
+                  />
+                )}
+                {isLoggedIn && (
+                  <FileIcon
+                    text="Gallery"
+                    icon="./gallery.png"
+                    style={{ backgroundColor: '#000', color: '#fff' }}
+                    isSelected={selectedFile === 'Gallery'}
+                    onClick={handleFileClick('Gallery')}
+                    delay={0.5}
+                    data-file-id="Gallery"
+                  />
+                )}
 
-              {isLoggedIn && !isJungle && (
+                {isLoggedIn && !isJungle && (
+                  <FileIcon
+                    text="Moments"
+                    icon="./fortunecookieright.png"
+                    isSelected={selectedFile === 'Menu'}
+                    onClick={handleFileClick('Menu')}
+                    delay={0.5}
+                    data-file-id="Menu"
+                  />
+                )}
+              </div>
+              <div>
                 <FileIcon
-                  text="Moments"
-                  icon="./fortunecookieright.png"
-                  isSelected={selectedFile === 'Menu'}
-                  onClick={handleFileClick('Menu')}
-                  delay={0.5}
-                  data-file-id="Menu"
+                  text="wutIsJuice.txt"
+                  icon="./texticon.png"
+                  isSelected={selectedFile === 'file1'}
+                  onClick={handleFileClick('file1')}
+                  delay={0}
+                  data-file-id="file1"
                 />
-              )}
-            </div>
-            <div>
-              <FileIcon
-                text="wutIsJuice.txt"
-                icon="./texticon.png"
-                isSelected={selectedFile === 'file1'}
-                onClick={handleFileClick('file1')}
-                delay={0}
-                data-file-id="file1"
-              />
-              <FileIcon
-                text="wutIsJungle.txt"
-                icon="./texticon.png"
-                isSelected={selectedFile === 'wutIsJungle'}
-                onClick={handleFileClick('wutIsJungle')}
-                delay={0}
-                data-file-id="wutIsJungle"
-              />
+                <FileIcon
+                  text="wutIsJungle.txt"
+                  icon="./texticon.png"
+                  isSelected={selectedFile === 'wutIsJungle'}
+                  onClick={handleFileClick('wutIsJungle')}
+                  delay={0}
+                  data-file-id="wutIsJungle"
+                />
 
-              <FileIcon
-                text="wutTheEgg.txt"
-                icon="./texticon.png"
-                isSelected={selectedFile === 'tamagotchiNotes'}
-                onClick={handleFileClick('tamagotchiNotes')}
-                delay={0}
-                data-file-id="tamagotchiNotes"
-              />
-            </div>
-            <div>
-              <FileIcon
-                text="Juice Zero"
-                icon="./juiceZero.png"
-                isSelected={selectedFile === 'Juice Zero'}
-                onClick={handleFileClick('Juice Zero')}
-                delay={0.4}
-                data-file-id="Juice Zero"
-              />
+                <FileIcon
+                  text="wutTheEgg.txt"
+                  icon="./texticon.png"
+                  isSelected={selectedFile === 'tamagotchiNotes'}
+                  onClick={handleFileClick('tamagotchiNotes')}
+                  delay={0}
+                  data-file-id="tamagotchiNotes"
+                />
+              </div>
+              <div>
+                <FileIcon
+                  text="Juice Zero"
+                  icon="./juiceZero.png"
+                  isSelected={selectedFile === 'Juice Zero'}
+                  onClick={handleFileClick('Juice Zero')}
+                  delay={0.4}
+                  data-file-id="Juice Zero"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div
-          style={{ position: 'absolute',
-            zIndex: 101,
-            top: TOP_BAR_HEIGHT + 8, right: 8 }}
-        >
-          {isLoggedIn &&
-            !userData?.achievements?.includes('pr_submitted') &&
-            !isJungle && (
+          <div
+            style={{ position: 'absolute',
+              zIndex: 101,
+              top: TOP_BAR_HEIGHT + 8, right: 8 }}
+          >
+            {isLoggedIn &&
+              !userData?.achievements?.includes('pr_submitted') &&
+              !isJungle && (
+                <div
+                  className="panel-pop"
+                  style={{
+                    width: 332,
+                    marginTop: 8,
+                    backgroundColor: 'rgba(255, 220, 180, 0.8)',
+                    backdropFilter:
+                      'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
+                    WebkitBackdropFilter:
+                      'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
+                    border: '1px solid rgba(255, 220, 180, 0.4)',
+                    borderRadius: 8,
+                    padding: 12,
+                    boxShadow: '0 1px 25px rgba(255, 160, 60, 0.3)',
+                  }}
+                >
+                  <p style={{ color: 'rgba(0, 0, 0, 0.8)', margin: '0 0 8px 0' }}>
+                    First Challenge Reveals Itself...
+                  </p>
+                  <button
+                    onClick={handleFirstChallengeOpen}
+                    style={{
+                      padding: '4px 12px',
+                      backgroundColor: '#FF4002',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Uncover Challenge
+                  </button>
+                </div>
+              )}
+
+            {isLoggedIn &&
+              userData?.achievements?.includes('poc_submitted') &&
+              !isJungle && (
+                <V1Challenge
+                  userData={userData}
+                  handleThirdChallengeOpen={console.log("ok")}
+                />
+              )}
+
+            {isLoggedIn &&
+              userData?.achievements?.includes('pr_submitted') &&
+              !userData?.achievements?.includes('poc_submitted') &&
+              !isJungle && (
+                <div
+                  className="panel-pop rainbow-glass-panel"
+                  style={{
+                    width: 332,
+                    marginTop: 8,
+                    borderRadius: 8,
+                    padding: 12,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <p
+                      style={{
+                        color: 'rgba(255, 255, 255, 1.0)',
+                        margin: '0 0 8px 0',
+                        textShadow: `
+                                  -1px -1px 0 #000,
+                                  1px -1px 0 #000,
+                                  -1px 1px 0 #000,
+                                  1px 1px 0 #000`,
+                      }}
+                    >
+                      Second Challenge Reveals Itself...
+                    </p>
+                    <button
+                      onClick={handleSecondChallengeOpen}
+                      disabled={userData.achievements.includes('poc_submitted')}
+                      style={{
+                        padding: '4px 12px',
+                        backgroundColor: '#FFE600',
+                        color: '#000',
+                        opacity: userData.achievements.includes('poc_submitted')
+                          ? 0.7
+                          : 1.0,
+                        border: '2px solid #000',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        animation: !userData.achievements.includes(
+                          'poc_submitted'
+                        )
+                          ? 'buttonBounce 2s ease-in-out infinite'
+                          : '',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      }}
+                    >
+                      {userData.achievements.includes('poc_submitted')
+                        ? 'Itch Submitted'
+                        : 'Uncover Challenge'}
+                    </button>
+                  </div>
+                  <div
+                    className="floating-boat boat1"
+                    style={{ left: '0', top: '50%' }}
+                  >
+                    ⛵️
+                  </div>
+                  <div
+                    className="floating-boat boat2"
+                    style={{ right: '0', top: '30%' }}
+                  >
+                    ⛵️
+                  </div>
+                  <div
+                    className="floating-boat boat1"
+                    style={{ left: '30%', top: '70%', animationDelay: '4s' }}
+                  >
+                    ⛵️
+                  </div>
+                </div>
+              )}
+            {getBubbleathonState() && (
+              <div
+                onClick={handleBubbleathonClick}
+                className="panel-pop rainbow-glass-panel"
+                style={{
+                  width: 332,
+                  marginTop: 8,
+                  borderRadius: 8,
+                  padding: 12,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  backgroundColor:
+                    getBubbleathonState() === 'sprinting'
+                      ? 'rgba(0, 255, 0, 0.1)'
+                      : getBubbleathonState() === 'refueling'
+                      ? 'rgba(0, 0, 255, 0.1)'
+                      : 'transparent',
+                }}
+              >
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: 'rgba(255, 255, 255, 1.0)',
+                        margin: 0,
+                        textShadow: `
+                          -1px -1px 0 #000,
+                          1px -1px 0 #000,
+                          -1px 1px 0 #000,
+                          1px 1px 0 #000`,
+                      }}
+                    >
+                      Bubbleathon
+                    </p>
+                    {getBubbleathonState() && (
+                      <span
+                        style={{
+                          color: 'rgba(255, 255, 255, 0.8)',
+                          fontSize: '0.9em',
+                          textShadow: `
+                              -1px -1px 0 #000,
+                              1px -1px 0 #000,
+                              -1px 1px 0 #000,
+                              1px 1px 0 #000`,
+                        }}
+                      >
+                        • Currently {getBubbleathonState()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => {
+                        if (!openWindows.includes('wutIsBubbleathon')) {
+                          setOpenWindows((prev) => [...prev, 'wutIsBubbleathon']);
+                          const audio =
+                            document.getElementById('windowOpenAudio');
+                          if (audio) {
+                            audio.currentTime = 0;
+                            audio.play();
+                          }
+                        }
+                      }}
+                      style={{
+                        padding: '4px 12px',
+                        backgroundColor: '#F1CADB',
+                        color: '#000',
+                        border: '2px solid #000',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      }}
+                    >
+                      What's Bubbleathon?
+                    </button>
+                    {isBubbleathonTime() && (
+                      <button
+                        onClick={() =>
+                          window.open(
+                            'https://hackclub.zoom.us/j/84884658967?pwd=zjWiAwyK03JXwxo7Tq9yAhgJKqlA3w.1',
+                            '_blank'
+                          )
+                        }
+                        style={{
+                          padding: '4px 12px',
+                          backgroundColor: '#F1CADB',
+                          color: '#000',
+                          border: '2px solid #000',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        }}
+                      >
+                        Join Zoom Call
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="floating-boat boat1"
+                  style={{ left: '0', top: '50%' }}
+                >
+                  🏃‍♂️
+                </div>
+                <div
+                  className="floating-boat boat2"
+                  style={{ right: '0', top: '30%' }}
+                >
+                  🏃‍♂️
+                </div>
+                <div
+                  className="floating-boat boat1"
+                  style={{ left: '30%', top: '70%', animationDelay: '4s' }}
+                >
+                  🏃‍♂️
+                </div>
+                <div
+                  className="floating-boat boat2"
+                  style={{ left: '30%', top: '70%', animationDelay: '4s' }}
+                >
+                  🏃‍♂️
+                </div>
+              </div>
+            )}
+
+            {isLoggedIn && tickets.some((t) => !t.used) && (
               <div
                 className="panel-pop"
                 style={{
@@ -3471,453 +3845,208 @@ export default function MainView({
                 }}
               >
                 <p style={{ color: 'rgba(0, 0, 0, 0.8)', margin: '0 0 8px 0' }}>
-                  First Challenge Reveals Itself...
+                  You found {tickets.filter((t) => !t.used).length} special ticket
+                  {tickets.filter((t) => !t.used).length !== 1 ? 's' : ''}...
                 </p>
                 <button
-                  onClick={handleFirstChallengeOpen}
+                  onClick={handleFactionOpen}
                   style={{
                     padding: '4px 12px',
-                    backgroundColor: '#FF4002',
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     color: '#fff',
                     border: 'none',
+                    backgroundColor: '#FF6000',
                     borderRadius: 4,
                     cursor: 'pointer',
                   }}
                 >
-                  Uncover Challenge
+                  Grab Your Tickets
                 </button>
               </div>
             )}
+          </div>
 
-          {isLoggedIn &&
-            userData?.achievements?.includes('pr_submitted') &&
-            !isJungle && (
-              <div
-                className="panel-pop rainbow-glass-panel"
-                style={{
-                  width: 332,
-                  marginTop: 8,
-                  borderRadius: 8,
-                  padding: 12,
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p
-                    style={{
-                      color: 'rgba(255, 255, 255, 1.0)',
-                      margin: '0 0 8px 0',
-                      textShadow: `
-                                -1px -1px 0 #000,
-                                1px -1px 0 #000,
-                                -1px 1px 0 #000,
-                                1px 1px 0 #000`,
-                    }}
-                  >
-                    Second Challenge Reveals Itself...
-                  </p>
-                  <button
-                    onClick={handleSecondChallengeOpen}
-                    disabled={userData.achievements.includes('poc_submitted')}
-                    style={{
-                      padding: '4px 12px',
-                      backgroundColor: '#FFE600',
-                      color: '#000',
-                      opacity: userData.achievements.includes('poc_submitted')
-                        ? 0.7
-                        : 1.0,
-                      border: '2px solid #000',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      animation: !userData.achievements.includes(
-                        'poc_submitted'
-                      )
-                        ? 'buttonBounce 2s ease-in-out infinite'
-                        : '',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    }}
-                  >
-                    {userData.achievements.includes('poc_submitted')
-                      ? 'Itch Submitted'
-                      : 'Uncover Challenge'}
-                  </button>
-                </div>
-                <div
-                  className="floating-boat boat1"
-                  style={{ left: '0', top: '50%' }}
-                >
-                  ⛵️
-                </div>
-                <div
-                  className="floating-boat boat2"
-                  style={{ right: '0', top: '30%' }}
-                >
-                  ⛵️
-                </div>
-                <div
-                  className="floating-boat boat1"
-                  style={{ left: '30%', top: '70%', animationDelay: '4s' }}
-                >
-                  ⛵️
-                </div>
-              </div>
-            )}
-          {getPenguathonState() && (
-            <div
-              onClick={handlePenguathonClick}
-              className="panel-pop rainbow-glass-panel"
-              style={{
-                width: 332,
-                marginTop: 8,
-                borderRadius: 8,
-                padding: 12,
-                position: 'relative',
-                overflow: 'hidden',
-                cursor: 'pointer',
-                backgroundColor:
-                  getPenguathonState() === 'sprinting'
-                    ? 'rgba(0, 255, 0, 0.1)'
-                    : getPenguathonState() === 'refueling'
-                    ? 'rgba(0, 0, 255, 0.1)'
-                    : 'transparent',
-              }}
-            >
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <p
-                    style={{
-                      color: 'rgba(255, 255, 255, 1.0)',
-                      margin: 0,
-                      textShadow: `
-                        -1px -1px 0 #000,
-                        1px -1px 0 #000,
-                        -1px 1px 0 #000,
-                        1px 1px 0 #000`,
-                    }}
-                  >
-                    Penguathon
-                  </p>
-                  {getPenguathonState() && (
-                    <span
-                      style={{
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        fontSize: '0.9em',
-                        textShadow: `
-                            -1px -1px 0 #000,
-                            1px -1px 0 #000,
-                            -1px 1px 0 #000,
-                            1px 1px 0 #000`,
-                      }}
-                    >
-                      • Currently {getPenguathonState()}
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={() => {
-                      if (!openWindows.includes('wutIsPenguathon')) {
-                        setOpenWindows((prev) => [...prev, 'wutIsPenguathon']);
-                        const audio =
-                          document.getElementById('windowOpenAudio');
-                        if (audio) {
-                          audio.currentTime = 0;
-                          audio.play();
-                        }
-                      }
-                    }}
-                    style={{
-                      padding: '4px 12px',
-                      backgroundColor: '#0DF2F1',
-                      color: '#000',
-                      border: '2px solid #000',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    }}
-                  >
-                    What's Penguathon?
-                  </button>
-                  {isPenguathonTime() && (
-                    <button
-                      onClick={() =>
-                        window.open(
-                          'https://hack.af/z-join?id=h6tp88',
-                          '_blank'
-                        )
-                      }
-                      style={{
-                        padding: '4px 12px',
-                        backgroundColor: '#0DF2F1',
-                        color: '#000',
-                        border: '2px solid #000',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                      }}
-                    >
-                      Join Zoom Call
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div
-                className="floating-boat boat1"
-                style={{ left: '0', top: '50%' }}
-              >
-                🏃‍♂️
-              </div>
-              <div
-                className="floating-boat boat2"
-                style={{ right: '0', top: '30%' }}
-              >
-                🏃‍♂️
-              </div>
-              <div
-                className="floating-boat boat1"
-                style={{ left: '30%', top: '70%', animationDelay: '4s' }}
-              >
-                🏃‍♂️
-              </div>
-              <div
-                className="floating-boat boat2"
-                style={{ left: '30%', top: '70%', animationDelay: '4s' }}
-              >
-                🏃‍♂️
-              </div>
-            </div>
-          )}
-
-          {isLoggedIn && tickets.some((t) => !t.used) && (
-            <div
-              className="panel-pop"
-              style={{
-                width: 332,
-                marginTop: 8,
-                backgroundColor: 'rgba(255, 220, 180, 0.8)',
-                backdropFilter:
-                  'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
-                WebkitBackdropFilter:
-                  'blur(8px) saturate(200%) sepia(50%) hue-rotate(-15deg) brightness(1.1)',
-                border: '1px solid rgba(255, 220, 180, 0.4)',
-                borderRadius: 8,
-                padding: 12,
-                boxShadow: '0 1px 25px rgba(255, 160, 60, 0.3)',
-              }}
-            >
-              <p style={{ color: 'rgba(0, 0, 0, 0.8)', margin: '0 0 8px 0' }}>
-                You found {tickets.filter((t) => !t.used).length} special ticket
-                {tickets.filter((t) => !t.used).length !== 1 ? 's' : ''}...
-              </p>
-              <button
-                onClick={handleFactionOpen}
-                style={{
-                  padding: '4px 12px',
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  color: '#fff',
-                  border: 'none',
-                  backgroundColor: '#FF6000',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                }}
-              >
-                Grab Your Tickets
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div
-          style={{
-            position: 'absolute',
-            display: 'flex',
-            gap: 8,
-            flexDirection: 'column',
-            alignItems: 'end',
-            bottom: 0,
-            right: 16,
-            height: "100%", 
-            justifyContent: "center"
-          }}
-        >
-          <div 
+          <div
             style={{
-              display: "flex",
-              gap: 16,
-              height: 240,
-              transform: "rotate(270deg) scale(0.6) translateY(420px)",
-              position: 'relative',
+              position: 'absolute',
+              display: 'flex',
+              gap: 8,
+              flexDirection: 'column',
+              alignItems: 'end',
+              bottom: 0,
+              right: 16,
+              height: "100%",
+              justifyContent: "center"
             }}
-            onMouseEnter={() => setIsCardsFanned(true)}
-            onMouseLeave={() => setIsCardsFanned(false)}
           >
-            {/* Action Button - only visible when fanned out */}
-            <div 
-              onClick={handleQuestionClick}
+            <div
               style={{
-                position: 'absolute',
-                width: isCardsFanned ? 80 : 0,
-                opacity: isCardsFanned ? 1.0 : 0,
-                height: isCardsFanned ? 80 : 0,
-                borderRadius: '50%',
-                backgroundColor: '#fff',
-                left: '50%',
-                top: "32px",
-                transform: 'translate(-50%, -50%)',
-                zIndex: 2,
-                transition: 'all 0.3s ease-in',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000',
-                fontSize: '32px',
-                fontWeight: 'bold',
-                pointerEvents: 'auto' // Re-enable pointer events for the button
-              }}
-            >
-              +
-            </div>
-
-            <div style={{
-              transform: isCardsFanned 
-                ? "rotate(-70deg) scale(1.0) translate(120px, -60px)"
-                : "rotate(-15deg) scale(0.8) translateX(65px) translateY(60px)",
-              transition: "all 0.3s ease-out",
-              pointerEvents: 'auto' // Re-enable pointer events for the card
-            }}>
-              <VillagerPokemonCard/>
-            </div>
-
-            <div style={{
-              zIndex: 1,
-              transform: isCardsFanned 
-                ? "translateY(-280px) scale(1.0)"
-                : "translateY(10px) scale(0.9)",
-              transition: "all 0.3s ease-out",
-              pointerEvents: 'auto' // Re-enable pointer events for the card
-            }}>
-              <Win7PokemonCard />
-            </div>
-
-            <div style={{
-              transform: isCardsFanned
-                ? "rotate(70deg) scale(1.0) translate(-120px, -60px)"
-                : "rotate(15deg) scale(0.8) translateX(-65px) translateY(60px)",
-              transition: "all 0.3s ease-out",
-              pointerEvents: 'auto' // Re-enable pointer events for the card
-            }}>
-              <BrucePokemonCard />
-            </div>
-          </div>
-        </div>
-
-        <div
-          style={{
-            position: 'absolute',
-            display: 'flex',
-            gap: 8,
-            flexDirection: 'column',
-            alignItems: 'end',
-            bottom: 0,
-            right: 16,
-          }}
-        >
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* <div style={{width: 256, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
-            <p>a Hack Clubber published a game on Itch.io 5min ago</p>
-            </div>  */}
-            {/* <div style={{width: 256, transform: "scale(0.9)", opacity: 0.9, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
-            <p>a Hack Clubber published a game on Itch.io 5min ago</p>
-            </div>   
-            <div style={{width: 256, transform: "scale(0.8)", opacity: 0.8, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
-            <p>a Hack Clubber published a game on Itch.io 5min ago</p>
-            </div>    */}
-          </div>
-          {userData?.Postcards?.length > 0 && (
-            <img
-              style={{
-                width: 96,
-                animation: 'jiggleEnvelope 1.2s linear infinite',
-                transformOrigin: '50% 50%',
-                transition: 'all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                cursor: 'pointer',
+                display: "flex",
+                gap: 16,
+                height: 240,
+                transform: "rotate(270deg) scale(0.6) translateY(420px)",
                 position: 'relative',
-                filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.1))',
               }}
-              onMouseEnter={(e) => {
-                e.target.style.width = '128px';
-                e.target.style.animation =
-                  'jiggleEnvelopeIntense 0.8s linear infinite, rainbowShadow 8s linear infinite';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.width = '96px';
-                e.target.style.animation =
-                  'jiggleEnvelope 1.2s linear infinite';
-              }}
-              onClick={() => {
-                if (!openWindows.includes('postcard')) {
-                  setOpenWindows((prev) => [...prev, 'postcard']);
-                  setWindowOrder((prev) => [
-                    ...prev.filter((w) => w !== 'postcard'),
-                    'postcard',
-                  ]);
-                  document.getElementById('mailAudio').play();
-                } else {
-                  setWindowOrder((prev) => [
-                    ...prev.filter((w) => w !== 'postcard'),
-                    'postcard',
-                  ]);
-                }
-              }}
-              src="./envelope.png"
+              onMouseEnter={() => setIsCardsFanned(true)}
+              onMouseLeave={() => setIsCardsFanned(false)}
+            >
+              {/* Action Button - only visible when fanned out */}
+              <div
+                onClick={handleQuestionClick}
+                style={{
+                  position: 'absolute',
+                  width: isCardsFanned ? 80 : 0,
+                  opacity: isCardsFanned ? 1.0 : 0,
+                  height: isCardsFanned ? 80 : 0,
+                  borderRadius: '50%',
+                  backgroundColor: '#fff',
+                  left: '50%',
+                  top: "32px",
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: 2,
+                  transition: 'all 0.3s ease-in',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#000',
+                  fontSize: '32px',
+                  fontWeight: 'bold',
+                  pointerEvents: 'auto' // Re-enable pointer events for the button
+                }}
+              >
+                +
+              </div>
+
+              <div style={{
+                transform: isCardsFanned
+                  ? "rotate(-70deg) scale(1.0) translate(120px, -60px)"
+                  : "rotate(-15deg) scale(0.8) translateX(65px) translateY(60px)",
+                transition: "all 0.3s ease-out",
+                pointerEvents: 'auto' // Re-enable pointer events for the card
+              }}>
+                <VillagerPokemonCard/>
+              </div>
+
+              <div style={{
+                zIndex: 1,
+                transform: isCardsFanned
+                  ? "translateY(-280px) scale(1.0)"
+                  : "translateY(10px) scale(0.9)",
+                transition: "all 0.3s ease-out",
+                pointerEvents: 'auto' // Re-enable pointer events for the card
+              }}>
+                <Win7PokemonCard />
+              </div>
+
+              <div style={{
+                transform: isCardsFanned
+                  ? "rotate(70deg) scale(1.0) translate(-120px, -60px)"
+                  : "rotate(15deg) scale(0.8) translateX(-65px) translateY(60px)",
+                transition: "all 0.3s ease-out",
+                pointerEvents: 'auto' // Re-enable pointer events for the card
+              }}>
+                <BrucePokemonCard />
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              display: 'flex',
+              gap: 8,
+              flexDirection: 'column',
+              alignItems: 'end',
+              bottom: 0,
+              right: 16,
+            }}
+          >
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* <div style={{width: 256, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
+              <p>a Hack Clubber published a game on Itch.io 5min ago</p>
+              </div>  */}
+              {/* <div style={{width: 256, transform: "scale(0.9)", opacity: 0.9, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
+              <p>a Hack Clubber published a game on Itch.io 5min ago</p>
+              </div>
+              <div style={{width: 256, transform: "scale(0.8)", opacity: 0.8, backgroundColor: "#fff", borderRadius: 4, padding: 4}}>
+              <p>a Hack Clubber published a game on Itch.io 5min ago</p>
+              </div>    */}
+            </div>
+            {userData?.Postcards?.length > 0 && (
+              <img
+                style={{
+                  width: 96,
+                  animation: 'jiggleEnvelope 1.2s linear infinite',
+                  transformOrigin: '50% 50%',
+                  transition: 'all 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.1))',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.width = '128px';
+                  e.target.style.animation =
+                    'jiggleEnvelopeIntense 0.8s linear infinite, rainbowShadow 8s linear infinite';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.width = '96px';
+                  e.target.style.animation =
+                    'jiggleEnvelope 1.2s linear infinite';
+                }}
+                onClick={() => {
+                  if (!openWindows.includes('postcard')) {
+                    setOpenWindows((prev) => [...prev, 'postcard']);
+                    setWindowOrder((prev) => [
+                      ...prev.filter((w) => w !== 'postcard'),
+                      'postcard',
+                    ]);
+                    document.getElementById('mailAudio').play();
+                  } else {
+                    setWindowOrder((prev) => [
+                      ...prev.filter((w) => w !== 'postcard'),
+                      'postcard',
+                    ]);
+                  }
+                }}
+                src="./envelope.png"
+              />
+            )}
+          </div>
+
+          {/* background goes here */}
+          <div
+            onClick={handleBackgroundClick}
+            style={{
+              width: '100vw',
+              height: '100vh',
+              overflow: 'hidden',
+              display: 'flex',
+              margin: 0,
+              cursor: 'default',
+            }}
+          >
+            <Background />
+          </div>
+
+          <div style={{ position: 'absolute', bottom: 8, left: 8 }}>
+            <FileIcon
+              text="Thanks"
+              icon="./heart.png"
+              isSelected={selectedFile === 'Thanks'}
+              onClick={handleFileClick('Thanks')}
+              delay={0.6}
+              data-file-id="Thanks"
             />
-          )}
-        </div>
+          </div>
 
-        {/* background goes here */}
-        <div
-          onClick={() => setSelectedFile(null)}
-          style={{
-            width: '100vw',
-            height: '100vh',
-            overflow: 'hidden',
-            display: 'flex',
-            margin: 0,
-            cursor: 'default',
-          }}
-        >
-          <Background />
+          {/* Add audio elements */}
+          <audio id="juicerAudio" src="./juicer.mp3" preload="auto"></audio>
+          <audio id="collectAudio" src="./collect.mp3" preload="auto"></audio>
+          <audio id="windowOpenAudio" src="./sounds/windowOpenSound.wav" />
+          <audio id="mailAudio" src="/youGotMail.mp3" />
         </div>
-
-        <div style={{ position: 'absolute', bottom: 8, left: 8 }}>
-          <FileIcon
-            text="Thanks"
-            icon="./heart.png"
-            isSelected={selectedFile === 'Thanks'}
-            onClick={handleFileClick('Thanks')}
-            delay={0.6}
-            data-file-id="Thanks"
-          />
-        </div>
-
-        {/* Add audio elements */}
-        <audio id="juicerAudio" src="./juicer.mp3" preload="auto"></audio>
-        <audio id="collectAudio" src="./collect.mp3" preload="auto"></audio>
-        <audio id="windowOpenAudio" src="./sounds/windowOpenSound.wav" />
-        <audio id="mailAudio" src="/youGotMail.mp3" />
       </div>
     </div>
   );

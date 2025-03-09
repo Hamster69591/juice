@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   //   const safeAuthToken = authToken.replace(/'/g, "\\'");
     
   //   // Get user data
-  //   const records = await base(process.env.AIRTABLE_TABLE_NAME).select({
+  //   const records = await base("Signups").select({
   //     filterByFormula: `{token} = '${safeAuthToken}'`,
   //     maxRecords: 1
   //   }).firstPage();
