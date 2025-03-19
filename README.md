@@ -1,11 +1,13 @@
 # Juice! 🧃
 
+Hackathon hosted by AdventureX that's inviting folks from Hack Club!
+
 *There's never been anything like this before*
 
 ![background](https://github.com/user-attachments/assets/156b45a9-25bd-4808-9fca-456a66d2cd93)
 <img src="https://github.com/hackclub/juice/blob/main/site/public/juicebigimage.png" alt="juiceboxbuilding" width="130" height="130">
 
-Spend 2 months building a game with your friends, go to Shanghai, China, and then run a popup cafe for people from the streets to come in and try our games!
+Spend 2 months building a game with your friends, go to Shanghai, China, and then run a popup exhibit for people from the streets to come in and try our games!
 
 ## What's the criteria for the games? 👾
 
@@ -26,7 +28,7 @@ Add your game idea to the games folder to get started!
 
 April 4th - April 11th!
 
-## What's the cafe going to be like? ☕️
+## What's the exhibit going to be like? ☕️
 
 We'll decide the specifics together in the [#juice](https://hackclub.slack.com/archives/C088UF12N1Z) channel. It will be full of computers running our games where anyone can come in and play!
 
@@ -63,13 +65,6 @@ pnpm run dev
 ```
 
 & make a PR!
-
-## some folks helping us make this :)
-Thomas Stubblefield ([@SerenityUX](https://github.com/SerenityUX)),
-Thomas Wu ([@TakumiBC](https://github.com/TakumiBC)),
-Paolo Carino ([paoloaverycarino.com](https://www.paoloaverycarino.com)),
-Estella Gu ([@themagicfrog](https://github.com/themagicfrog)) (credit to her for making all the epic art on the site), &
-Lily Ding ([@Lily-D-coder](https://github.com/Lily-D-coder))
 
 + YOU if you'd like (we would love more help)!!!
 
